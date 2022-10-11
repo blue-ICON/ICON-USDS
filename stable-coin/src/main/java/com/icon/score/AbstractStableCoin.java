@@ -15,8 +15,8 @@ import static score.Context.require;
 
 public abstract class AbstractStableCoin {
     protected final String TAG = "StableCoin";
-    protected final Integer TERM_LENGTH = 43120;
-    protected final Address EOA_ZERO = Address.fromString("hx" + '0' * 40);
+    protected final BigInteger TERM_LENGTH = BigInteger.valueOf(43120);
+    protected final Address EOA_ZERO = Address.fromString("hx0000000000000000000000000000000000000000");
 
     protected String name;
     protected String symbol;
@@ -30,7 +30,11 @@ public abstract class AbstractStableCoin {
     protected final DictDB<Address, BigInteger> _balances = Context.newDictDB("_balances", BigInteger.class);
     protected final DictDB<Address, BigInteger> _allowances = Context.newDictDB("_allowances", BigInteger.class);
     protected final DictDB<Address, Boolean> isIssuer = Context.newDictDB("isIssuer", Boolean.class);
-    protected final BranchDB<Address,DictDB<String,Integer>> _whitelist = Context.newBranchDB("_whitelist", Integer.class);
+    protected final BranchDB<Address,DictDB<String,BigInteger>> _whitelist = Context.newBranchDB("_whitelist",
+            BigInteger.class);
+
+    public static final String START_HEIGHT = "free_tx_start_height";
+    public static final String TXN_COUNT = "free_tx_count_since_start";
 
 
     @EventLog(indexed = 3)
@@ -48,15 +52,58 @@ public abstract class AbstractStableCoin {
     @EventLog(indexed = 2)
     public void WhitelistWallet(Address _to, byte[] _data) {}
 
-    protected void _transfer(Address _from, Address _to, BigInteger _value, byte[] _data) {
-    /*
-        Transfers certain amount of tokens from `_from` to `_to`.
-        This is an internal function.
-        :param _from: The account from which the token is to be transferred.
-        :param _to: The account to which the token is to be transferred.
-        :param _value: The no. of tokens to be transferred.
-        :param _data: Any information or message
+    public AbstractStableCoin(){
+
+    }
+    protected void onlyAdmin(String msg){
+        require(Context.getCaller() == admin.get(),msg);
+    }
+
+//    protected void setFeeSharingPercentage(){
+//        if (!_whitelist.at(Context.getCaller()).get("free_tx_start_height").equals(BigInteger.ZERO)){
+//            _whitelist.at(Context.getCaller()).set("free_tx_start_height",BigInteger.valueOf(Context.getBlockHeight()));
+//            _whitelist.at(Context.getCaller()).set("free_tx_count_since_start",BigInteger.ONE);
+//            Context.setFeeSharingProportion(100);
+//
+//        } else if (_whitelist.at(Context.getCaller()).get("free_tx_count_since_start").add(BigInteger.ONE).compareTo
+//                (freeDailyTLimit.get())<=0) {
+//            BigInteger newVal = _whitelist.at(Context.getCaller()).get("free_tx_count_since_start").add(BigInteger.ONE);
+//            _whitelist.at(Context.getCaller()).set("free_tx_count_since_start",newVal);
+//            Context.setFeeSharingProportion(100);
+//        }
+//    }
+
+    protected void setFeeSharingPercentage() {
+        Address user = Context.getCaller();
+        BigInteger currentBlockHeight = BigInteger.valueOf(getBlockHeight());
+        DictDB<String, BigInteger> userFeeSharing = _whitelist.at(user);
+            if (userFeeSharing.get(START_HEIGHT) == null) {
+                userFeeSharing.set(START_HEIGHT, currentBlockHeight);
+            }
+            if (userFeeSharing.get(START_HEIGHT).add(TERM_LENGTH).compareTo(currentBlockHeight) > 0) {
+                BigInteger count = userFeeSharing.getOrDefault(TXN_COUNT, BigInteger.ZERO);
+                if (count.compareTo(freeDailyTLimit.get()) < 0) {
+                    userFeeSharing.set(TXN_COUNT, count.add(BigInteger.ONE));
+                    Context.setFeeSharingProportion(100);
+                }
+            } else {
+                userFeeSharing.set(START_HEIGHT, currentBlockHeight);
+                userFeeSharing.set(TXN_COUNT, BigInteger.ONE);
+                Context.setFeeSharingProportion(100);
+            }
+    }
+
+
+    /**
+     * Transfers certain amount of tokens from `_from` to `_to`.
+     * This is an internal function.
+     * :param _from: The account from which the token is to be transferred.
+     * :param _to: The account to which the token is to be transferred.
+     * :param _value: The no. of tokens to be transferred.
+     * :param _data: Any information or message
      */
+    protected void _transfer(Address _from, Address _to, BigInteger _value, byte[] _data) {
+
         require(_to!=EOA_ZERO,"Cannot transfer to zero address");
         require(_value.compareTo(BigInteger.ZERO)> 0, "Cannot transfer zero or less");
         require(_balances.get(_from).compareTo(_value)>=0, "Insufficient Balance");
@@ -65,18 +112,9 @@ public abstract class AbstractStableCoin {
         _balances.set(_from,_balances.get(_from).subtract(_value));
         _balances.set(_to,_balances.get(_to).add(_value));
 
-        String data = new String(_data);
-
-        if (data == null){
-            data = "None";
+        if (_to.isContract()){
+            Context.call(_to,"tokenFallback",_from,_value,_data);
         }
-
-//        if _to.is_contract
-//
-//        //If the recipient is SCORE, then calls `tokenFallback` to hand over control.
-//        recipient_score = create_interface_score(_to, TokenFallbackInterface)
-//        recipient_score.tokenFallback(_from, _value, _data)
-
         //Emits an event log `Transfer`
         Transfer(_from, _to, _value, _data);
     }
@@ -118,12 +156,9 @@ public abstract class AbstractStableCoin {
         require(_to!=EOA_ZERO,"Can not whitelist zero wallet address");
 
         if (_whitelist.at(_to).get("free_tx_start_height") == null){
-            _whitelist.at(_to).set("free_tx_start_height", (int) getBlockHeight());
-            _whitelist.at(_to).set("free_tx_start_height", 1);
+            _whitelist.at(_to).set("free_tx_start_height", BigInteger.valueOf(getBlockHeight()));
+            _whitelist.at(_to).set("free_tx_start_height", BigInteger.ONE);
         }
-    }
-    public <K> K call(Class<K> kClass, Address contract, String method, Object... params) {
-        return Context.call(kClass, contract, method, params);
     }
 
 }

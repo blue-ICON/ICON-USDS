@@ -1,3 +1,4 @@
 stable-coin/build/
 .gradle
 JavaTest.json
+.idea

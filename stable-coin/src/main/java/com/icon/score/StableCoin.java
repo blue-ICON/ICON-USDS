@@ -3,26 +3,38 @@ package com.icon.score;
 import score.Address;
 import score.Context;
 import score.annotation.External;
+import score.annotation.Optional;
+
 import java.math.BigInteger;
 import java.util.List;
+//import score.utils.List;
+
 
 import static score.Context.require;
 
 public class StableCoin extends AbstractStableCoin {
 
-    public StableCoin(String name, String symbol, BigInteger decimals, Address admin, int nIssuers) {
+    public StableCoin(String name, String symbol, BigInteger decimals, @Optional int nIssuers) {
         super();
 
+        if (name==null){
+            if (nIssuers==0){
+                nIssuers =2;
+            }
+            require(name.length()>0,"Invalid Token Name");
+            require(symbol.length() > 0, "Invalid Token Symbol Name");
+            require(decimals.compareTo(BigInteger.ZERO) > 0, "Decimals cannot be less than 0");
+            require(nIssuers > 0, "1 or more issuers required");
 
-
-        this.name = name;
-        this.symbol = symbol;
-        this.decimals.set(decimals);
-        this.admin.set(admin);
-        this.nIssuers.set(nIssuers);
-        this.totalSupply.set(BigInteger.ZERO);
-        this._paused.set(false);
-        this.freeDailyTLimit.set(BigInteger.valueOf(50));
+            this.name = name;
+            this.symbol = symbol;
+            this.decimals.set(decimals);
+            this.admin.set(Context.getCaller());
+            this.nIssuers.set(nIssuers);
+            this.totalSupply.set(BigInteger.ZERO);
+            this._paused.set(false);
+            this.freeDailyTLimit.set(BigInteger.valueOf(50));
+        }
     }
 
     @External(readonly=true)
@@ -66,7 +78,7 @@ public class StableCoin extends AbstractStableCoin {
     /*
        Returns the wallet address of admin.
      */
-        return Context.getCaller();
+        return admin.get();
     }
     @External(readonly=true)
     public List<Address> getIssuers(){
@@ -99,13 +111,27 @@ public class StableCoin extends AbstractStableCoin {
         return freeDailyTLimit.get();
     }
 
+    /**
+     *
+     * @param _owner
+     * @return
+     */
     @External(readonly=true)
     public BigInteger remainingFreeTxThisTerm(Address _owner) {
     /*
          Returns number of free transactions left for `_owner`
         :param _owner: The account at which remaining free transaction is to be queried
      */
-        return BigInteger.ONE;
+        if (!_whitelist.at(_owner).get("free_tx_start_height").equals(BigInteger.ZERO))
+        {
+            if (_whitelist.at(_owner).get("free_tx_start_height").add(TERM_LENGTH).compareTo(BigInteger.valueOf
+                    (Context.getBlockHeight()))<0){
+                return freeDailyTLimit.get();
+            }else {
+                return freeDailyTLimit.get().add(_whitelist.at(_owner).get("free_tx_count_since_start"));
+            }
+        }
+        return BigInteger.ZERO;
     }
 
     @External(readonly=true)
@@ -114,19 +140,23 @@ public class StableCoin extends AbstractStableCoin {
          Returns if wallet address is whitelisted.
         :param _owner: The account to check if it is whitelisted
      */
-        return _whitelist.at(_owner).get("free_tx_start_height")!= 0;
+        return !_whitelist.at(_owner).get("free_tx_start_height").equals(BigInteger.ZERO);
     }
 
 
     @External
-    public void transfer(Address _to, BigInteger _value, byte[] _data){
+    public void transfer(Address _to, BigInteger _value, @Optional byte[] _data){
     /*
         Transfers certain amount of tokens from sender to the receiver.
         :param _to: The account to which the token is to be transferred.
         :param _value: The no. of tokens to be transferred.
         :param _data: Any information or message
      */
+        setFeeSharingPercentage();
 
+        if (_data == null) {
+            _data = new byte[0];
+        }
         _transfer(Context.getCaller(),_to,_value,_data);
     }
 
@@ -138,7 +168,7 @@ public class StableCoin extends AbstractStableCoin {
         :param _issuer: The wallet address of issuer to be added
      */
         require(newLimit.compareTo(BigInteger.ZERO) >= 0, "Free daily transaction limit cannot be under 0.");
-        require(Context.getCaller() == Context.getOwner(),"Only admin can add issuer");
+        onlyAdmin("Only admin can change free daily transaction limit");
 
         freeDailyTLimit.set(newLimit);
     }
@@ -150,7 +180,10 @@ public class StableCoin extends AbstractStableCoin {
         Only admin can call this method.
         :param _issuer: The wallet address of issuer to be added
      */
-        require(Context.getCaller() == Context.getOwner(),"Only admin can add issuer");
+        require(!isIssuer.get(issuer), issuer+" is already an issuer");
+        onlyAdmin("Only admin can add issuer");
+        require(issuers.size()<nIssuers.get(),"Cannot have more than "+nIssuers.get()+" issuers");
+        issuers.add(issuer);
         isIssuer.set(issuer,true);
     }
 
@@ -163,19 +196,22 @@ public class StableCoin extends AbstractStableCoin {
         :param _issuer: The wallet of address of issuer to remove
 
      */
+        onlyAdmin("Only admin can remove issuer");
+        require(isIssuer.get(issuer), issuer+" not an issuer");
 
-        require(Context.getCaller() == Context.getOwner(),"Only admin can remove issuer");
+        Address top = issuers.pop();
+
+        if (top!=issuer){
+            for (int i = 0; i < issuers.size(); i++) {
+                if (issuers.get(i)==issuer){
+                    issuers.set(i,top);
+                }
+            }
+        }
+        _allowances.set(issuer,BigInteger.ZERO);
         isIssuer.set(issuer,false);
     }
 
-//    require(_issuer in self._issuers, "{_issuer} not an issuer");
-//
-//    top = self._issuers.pop()
-//            if top != _issuer:
-//            for i in range(len(self._issuers)):
-//            if self._issuers[i] == _issuer:
-//    self._issuers[i] = top
-//    self._allowances[_issuer] = 0
 
     @External
     public void approve(Address issuer, BigInteger value){
@@ -184,8 +220,8 @@ public class StableCoin extends AbstractStableCoin {
         :param _issuer: The issuer to approve to.
         :param _value: The amount to approve to issuer to mint.
      */
-        require(Context.getCaller() == Context.getOwner(),"Only admin can approve amount to issuer");
-//        require(issuer in getIssuers(), "Only issuers can be approved")
+        onlyAdmin("Only admin can approve amount to issuer");
+        require(isIssuer.get(issuer), "Only issuers can be approved");
         _allowances.set(issuer,value);
         Approval(Context.getCaller(), issuer, value);
     }
@@ -197,7 +233,7 @@ public class StableCoin extends AbstractStableCoin {
         Only admin can call this method.
         :param _newAdmin: New wallet address that will now have admin rights
      */
-        require(Context.getCaller() == Context.getOwner(),"Only admin can transfer their admin right");
+        onlyAdmin("Only admin can transfer their admin right");
         admin.set(newAdmin);
     }
 
@@ -207,7 +243,7 @@ public class StableCoin extends AbstractStableCoin {
         Toggles pause status of the score.
         Only admin can call this method.
      */
-        require(Context.getCaller() == Context.getOwner(),"Only admin can toggle pause");
+        onlyAdmin("Only admin can toggle pause");
         _paused.set(!isPaused());
     }
 
@@ -244,7 +280,4 @@ public class StableCoin extends AbstractStableCoin {
      */
         _burn(Context.getCaller(),value);
     }
-
-
-
 }
