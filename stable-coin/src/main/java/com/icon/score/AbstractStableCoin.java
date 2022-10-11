@@ -29,7 +29,6 @@ public abstract class AbstractStableCoin {
     protected final  VarDB<BigInteger> freeDailyTLimit = Context.newVarDB("freeDailyTLimit", BigInteger.class);
     protected final DictDB<Address, BigInteger> _balances = Context.newDictDB("_balances", BigInteger.class);
     protected final DictDB<Address, BigInteger> _allowances = Context.newDictDB("_allowances", BigInteger.class);
-    protected final DictDB<Address, Boolean> isIssuer = Context.newDictDB("isIssuer", Boolean.class);
     protected final BranchDB<Address,DictDB<String,BigInteger>> _whitelist = Context.newBranchDB("_whitelist",
             BigInteger.class);
 
@@ -57,6 +56,15 @@ public abstract class AbstractStableCoin {
     }
     protected void onlyAdmin(String msg){
         require(Context.getCaller() == admin.get(),msg);
+    }
+
+    protected boolean isIssuer(Address issuer){
+        for (int i = 0; i < issuers.size(); i++) {
+            if (issuer == issuers.get(i)){
+                return true;
+            }
+        }
+        return false;
     }
 
 //    protected void setFeeSharingPercentage(){
@@ -97,10 +105,10 @@ public abstract class AbstractStableCoin {
     /**
      * Transfers certain amount of tokens from `_from` to `_to`.
      * This is an internal function.
-     * :param _from: The account from which the token is to be transferred.
-     * :param _to: The account to which the token is to be transferred.
-     * :param _value: The no. of tokens to be transferred.
-     * :param _data: Any information or message
+     * @param _from The account from which the token is to be transferred.
+     * @param _to The account to which the token is to be transferred.
+     * @param _value The no. of tokens to be transferred.
+     * @param _data Any information or message
      */
     protected void _transfer(Address _from, Address _to, BigInteger _value, byte[] _data) {
 
@@ -119,11 +127,17 @@ public abstract class AbstractStableCoin {
         Transfer(_from, _to, _value, _data);
     }
 
+    /**
+     * Mints `_value` tokens at `_to` address.
+     * Internal Function
+     * @param _to The account at which token is to be minted.
+     * @param _value Number of tokens to be minted at the account.
+     */
     protected void _mint(Address _to, BigInteger _value) {
         require(_to!=EOA_ZERO,"Cannot mint to zero address");
         require(_value.compareTo(BigInteger.ZERO)> 0, "Amount to mint should be greater than zero");
         require(!_paused.get(), "Cannot burn when paused");
-        Context.require(isIssuer.get(Context.getCaller()),"Only issuers can mint");
+        Context.require(isIssuer(Context.getCaller()),"Only issuers can mint");
 
         BigInteger value = _allowances.get(Context.getCaller()).subtract(_value);
         _allowances.set(Context.getCaller(),value);
@@ -139,6 +153,12 @@ public abstract class AbstractStableCoin {
         Mint(_to, _value);
     }
 
+    /**
+     * Burns `_value` amount of tokens from `_from` address.
+     * Internal Function
+     * @param _from The account at which token is to be destroyed.
+     * @param _value Number of tokens to be destroyed at the `_from`.
+     */
     protected void _burn(Address _from, BigInteger _value){
         require(_from!=EOA_ZERO,"Cannot burn from zero address");
         require(_value.compareTo(BigInteger.ZERO)> 0, "Amount to burn should be greater than zero");
@@ -152,6 +172,11 @@ public abstract class AbstractStableCoin {
         Burn(_from, _value);
     }
 
+    /**
+     * Whitelist `_to` address
+     * @param _to Address to whitelist
+     * @param _data Data in bytes
+     */
     protected void _whitelistWallet(Address _to, byte[] _data){
         require(_to!=EOA_ZERO,"Can not whitelist zero wallet address");
 
