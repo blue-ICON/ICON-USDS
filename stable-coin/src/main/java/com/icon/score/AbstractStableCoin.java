@@ -142,11 +142,11 @@ public abstract class AbstractStableCoin implements IRC2Base {
 
         require(_to != EOA_ZERO, "Cannot transfer to zero address");
         require(_value.compareTo(BigInteger.ZERO) > 0, "Cannot transfer zero or less");
-        require(_balances.get(_from).compareTo(_value) >= 0, "Insufficient Balance");
+        require(_balances.getOrDefault(_from,BigInteger.ZERO).compareTo(_value) >= 0, "Insufficient Balance");
         require(!_paused.get(), "Cannot transfer when paused");
 
-        _balances.set(_from, _balances.get(_from).subtract(_value));
-        _balances.set(_to, _balances.get(_to).add(_value));
+        _balances.set(_from, _balances.getOrDefault(_from,BigInteger.ZERO).subtract(_value));
+        _balances.set(_to, _balances.getOrDefault(_to,BigInteger.ZERO).add(_value));
 
         if (_to.isContract()) {
             Context.call(_to, "tokenFallback", _from, _value, _data);
@@ -165,17 +165,17 @@ public abstract class AbstractStableCoin implements IRC2Base {
     protected void _mint(Address _to, BigInteger _value) {
         require(_to != EOA_ZERO, "Cannot mint to zero address");
         require(_value.compareTo(BigInteger.ZERO) > 0, "Amount to mint should be greater than zero");
+        require(isIssuer(Context.getCaller()), "Only issuers can mint");
         require(!_paused.get(), "Cannot burn when paused");
-        Context.require(isIssuer(Context.getCaller()), "Only issuers can mint");
 
-        BigInteger value = _allowances.get(Context.getCaller()).subtract(_value);
+        BigInteger value = _allowances.getOrDefault(Context.getCaller(),BigInteger.ZERO).subtract(_value);
         _allowances.set(Context.getCaller(), value);
-        require(_allowances.get(Context.getCaller()).compareTo(BigInteger.ZERO) >= 0, "Allowance amount to mint exceed");
+        require(_allowances.getOrDefault(Context.getCaller(),BigInteger.ZERO).compareTo(_value) >= 0, "Allowance amount to mint exceed");
 
         _whitelistWallet(_to, "whitelist on mint".getBytes());
 
         totalSupply.set(totalSupply.get().add(_value));
-        _balances.set(_to, _balances.get(_to).add(_value));
+        _balances.set(_to, _balances.getOrDefault(_to,BigInteger.ZERO).add(_value));
 
         Transfer(EOA_ZERO, _to, _value, "mint".getBytes());
         Mint(_to, _value);
@@ -194,8 +194,8 @@ public abstract class AbstractStableCoin implements IRC2Base {
         require(_balances.get(_from).compareTo(_value) >= 0, "Insufficient balance to burn");
         require(!_paused.get(), "Cannot burn when paused");
 
-        totalSupply.set(totalSupply.get().subtract(_value));
-        _balances.set(_from, _balances.get(_from).subtract(_value));
+        totalSupply.set(totalSupply.getOrDefault(BigInteger.ZERO).subtract(_value));
+        _balances.set(_from, _balances.getOrDefault(_from,BigInteger.ZERO).subtract(_value));
 
         Transfer(_from, EOA_ZERO, _value, "burn".getBytes());
         Burn(_from, _value);

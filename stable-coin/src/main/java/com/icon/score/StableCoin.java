@@ -6,6 +6,7 @@ import score.annotation.External;
 import score.annotation.Optional;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
 
 import static score.Context.require;
@@ -49,9 +50,9 @@ public class StableCoin extends AbstractStableCoin {
         return decimals.get();
     }
 
-    @Override
+    @External(readonly = true)
     public BigInteger totalSupply() {
-        return this.totalSupply.get();
+        return this.totalSupply.getOrDefault(BigInteger.ZERO);
     }
 
     /**
@@ -76,7 +77,7 @@ public class StableCoin extends AbstractStableCoin {
      */
     @External(readonly = true)
     public List<Address> getIssuers() {
-        List<Address> temp = null;
+        List<Address> temp = new ArrayList<>();
         for (int i = 0; i < issuers.size(); i++) {
             temp.add(issuers.get(i));
         }
@@ -218,6 +219,7 @@ public class StableCoin extends AbstractStableCoin {
     public void approve(Address _issuer, BigInteger _value) {
         onlyAdmin("Only admin can approve amount to issuer");
         require(isIssuer(_issuer), "Only issuers can be approved");
+        Context.println("val"+_value);
         _allowances.set(_issuer, _value);
         Approval(Context.getCaller(), _issuer, _value);
     }
