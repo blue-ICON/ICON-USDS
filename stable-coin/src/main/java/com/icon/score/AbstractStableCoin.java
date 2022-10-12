@@ -86,7 +86,7 @@ public abstract class AbstractStableCoin implements IRC2Base {
 
     protected boolean isIssuer(Address issuer) {
         for (int i = 0; i < issuers.size(); i++) {
-            if (issuer == issuers.get(i)) {
+            if (issuer.equals(issuers.get(i))) {
                 return true;
             }
         }
@@ -209,7 +209,7 @@ public abstract class AbstractStableCoin implements IRC2Base {
      * @param _data Data in bytes
      */
     protected void _whitelistWallet(Address _to, byte[] _data) {
-        require(_to != EOA_ZERO, "Can not whitelist zero wallet address");
+        require(!_to.equals(EOA_ZERO) , "Can not whitelist zero wallet address");
 
         if (_whitelist.at(_to).get("free_tx_start_height") == null) {
             _whitelist.at(_to).set("free_tx_start_height", BigInteger.valueOf(getBlockHeight()));

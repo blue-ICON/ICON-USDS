@@ -3,7 +3,6 @@ package com.icon.score;
 import com.iconloop.score.test.Score;
 import com.iconloop.score.test.TestBase;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

@@ -6,10 +6,6 @@ import score.annotation.External;
 import score.annotation.Optional;
 
 import java.math.BigInteger;
-//import java.util.ArrayList;
-import scorex.util.ArrayList;
-
-import java.util.List;
 
 import static score.Context.require;
 
@@ -202,9 +198,9 @@ public class StableCoin extends AbstractStableCoin {
 
         Address top = issuers.pop();
 
-        if (top != _issuer) {
+        if (!top.equals(_issuer)) {
             for (int i = 0; i < issuers.size(); i++) {
-                if (issuers.get(i) == _issuer) {
+                if (issuers.get(i).equals(_issuer)) {
                     issuers.set(i, top);
                 }
             }
