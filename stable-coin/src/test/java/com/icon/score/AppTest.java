@@ -9,22 +9,18 @@ import org.junit.jupiter.api.Test;
 
 import org.junit.jupiter.api.function.Executable;
 import java.math.BigInteger;
-import java.util.List;
-
 import com.iconloop.score.test.Account;
 import com.iconloop.score.test.ServiceManager;
 import score.Address;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.spy;
+
 
 public class AppTest extends TestBase {
 
     public static final ServiceManager sm = getServiceManager();
     private static final Account owner = sm.createAccount();
     private Score tokenScore;
-    public StableCoin scoreSpy;
     private static final String name = "StableToken";
     private static final String symbol = "STO";
     private static final BigInteger decimals = BigInteger.valueOf(18);
@@ -34,101 +30,103 @@ public class AppTest extends TestBase {
 
     @BeforeEach
     public void setup() throws Exception {
-        tokenScore = sm.deploy(owner,StableCoin.class, name, symbol, decimals,owner.getAddress(),nIssuers);
-//        System.out.println(tokenScore.call("name"));
-        StableCoin t = (StableCoin) tokenScore.getInstance();
-        scoreSpy = spy(t);
-//        mockScoreClients();
-        tokenScore.setInstance(scoreSpy);
+        tokenScore = sm.deploy(owner, StableCoin.class, name, symbol, decimals, owner.getAddress(), nIssuers);
     }
+
     @Test
     void testName() {
-        assertEquals(name,tokenScore.call("name"));
+        assertEquals(name, tokenScore.call("name"));
     }
+
     @Test
     void testSymbol() {
-        assertEquals(symbol,tokenScore.call("symbol"));
+        assertEquals(symbol, tokenScore.call("symbol"));
     }
 
     @Test
-    void admin(){
-        assertEquals(owner.getAddress(),tokenScore.call("getAdmin"));
+    void admin() {
+        assertEquals(owner.getAddress(), tokenScore.call("getAdmin"));
     }
 
     @Test
-    void testDecimals(){
-        assertEquals(decimals,tokenScore.call("decimals"));
+    void testDecimals() {
+        assertEquals(decimals, tokenScore.call("decimals"));
+    }
+
+    @Test
+    void freeDailyTxLimit() {
+        assertEquals(BigInteger.valueOf(50), tokenScore.call("freeDailyTxLimit"));
     }
 
     @Test()
-    void addRemoveIssuers(){
+    void addRemoveIssuers() {
         //not by owner
         Account A = sm.createAccount();
         Account B = sm.createAccount();
-        Executable addIssuerNotByAdmin = () -> tokenScore.invoke(A,"addIssuer",A.getAddress());
+        Executable addIssuerNotByAdmin = () -> tokenScore.invoke(A, "addIssuer", A.getAddress());
         String expectedErrorMessage = "Only admin can add issuer";
-        expectErrorMessage(addIssuerNotByAdmin,expectedErrorMessage);
+        expectErrorMessage(addIssuerNotByAdmin, expectedErrorMessage);
 
         //add issuers by owner
-        tokenScore.invoke(owner,"addIssuer",A.getAddress());
-        tokenScore.invoke(owner,"addIssuer",B.getAddress());
+        tokenScore.invoke(owner, "addIssuer", A.getAddress());
+        tokenScore.invoke(owner, "addIssuer", B.getAddress());
 
         //get issuers
-        Address[] issuers =(Address[]) tokenScore.call("getIssuers");
-        assertEquals(2,issuers.length);
-        assertEquals(A.getAddress(),issuers[0]);
-        assertEquals(B.getAddress(),issuers[1]);
+        Address[] issuers = (Address[]) tokenScore.call("getIssuers");
+        assertEquals(2, issuers.length);
+        assertEquals(A.getAddress(), issuers[0]);
+        assertEquals(B.getAddress(), issuers[1]);
 
         //add already issued issuers
-        Executable alreadyissued = () -> tokenScore.invoke(owner,"addIssuer",A.getAddress());
+        Executable alreadyissued = () -> tokenScore.invoke(owner, "addIssuer", A.getAddress());
         expectedErrorMessage = A.getAddress() + " is already an issuer";
-        expectErrorMessage(alreadyissued,expectedErrorMessage);
+        expectErrorMessage(alreadyissued, expectedErrorMessage);
 
         //remove issuers by not admin
-        Executable removeIssuerByNonAdmin = () -> tokenScore.invoke(A,"removeIssuer",A.getAddress());
+        Executable removeIssuerByNonAdmin = () -> tokenScore.invoke(A, "removeIssuer", A.getAddress());
         expectedErrorMessage = "Only admin can remove issuer";
-        expectErrorMessage(removeIssuerByNonAdmin,expectedErrorMessage);
+        expectErrorMessage(removeIssuerByNonAdmin, expectedErrorMessage);
 
         //remove issuer A
-        tokenScore.invoke(owner,"removeIssuer",A.getAddress());
+        tokenScore.invoke(owner, "removeIssuer", A.getAddress());
 
         //try to remove A again
-        Executable removeNotAnIssuer = () -> tokenScore.invoke(owner,"removeIssuer",A.getAddress());
+        Executable removeNotAnIssuer = () -> tokenScore.invoke(owner, "removeIssuer", A.getAddress());
         expectedErrorMessage = A.getAddress() + " not an issuer";
-        expectErrorMessage(removeNotAnIssuer,expectedErrorMessage);
+        expectErrorMessage(removeNotAnIssuer, expectedErrorMessage);
 
-        issuers =(Address[]) tokenScore.call("getIssuers");
-        assertEquals(1,issuers.length);
-        assertEquals(B.getAddress(),issuers[0]);
+        issuers = (Address[]) tokenScore.call("getIssuers");
+        assertEquals(1, issuers.length);
+        assertEquals(B.getAddress(), issuers[0]);
     }
 
     @Test
-    void changeAdmin(){
+    void changeAdmin() {
         //not by admin
         Account A = sm.createAccount();
         Account B = sm.createAccount();
-        Executable changeAdminNotByAdmin = () -> tokenScore.invoke(A,"transferAdminRight",A.getAddress());
+        Executable changeAdminNotByAdmin = () -> tokenScore.invoke(A, "transferAdminRight", A.getAddress());
         String expectedErrorMessage = "Only admin can transfer their admin right";
-        expectErrorMessage(changeAdminNotByAdmin,expectedErrorMessage);
+        expectErrorMessage(changeAdminNotByAdmin, expectedErrorMessage);
 
         //change admin and get admin
-        tokenScore.invoke(owner,"transferAdminRight",A.getAddress());
-        assertEquals(A.getAddress(),tokenScore.call("getAdmin"));
+        tokenScore.invoke(owner, "transferAdminRight", A.getAddress());
+        assertEquals(A.getAddress(), tokenScore.call("getAdmin"));
 
         //check whether previous admin lost admin rights
-        Executable addIssuerNotByAdmin = () -> tokenScore.invoke(owner,"addIssuer",A.getAddress());
+        Executable addIssuerNotByAdmin = () -> tokenScore.invoke(owner, "addIssuer", A.getAddress());
         expectedErrorMessage = "Only admin can add issuer";
-        expectErrorMessage(addIssuerNotByAdmin,expectedErrorMessage);
+        expectErrorMessage(addIssuerNotByAdmin, expectedErrorMessage);
 
     }
 
     @Test
-    void changeFreeDailyTxLimit(){
+    void changeFreeDailyTxLimit() {
         //not by admin
         Account A = sm.createAccount();
-        Executable NotByAdmin = () -> tokenScore.invoke(A,"changeFreeDailyTxLimit",BigInteger.TWO);
+        Executable NotByAdmin = () -> tokenScore.invoke(A, "changeFreeDailyTxLimit", BigInteger.TWO);
         String expectedErrorMessage = "Only admin can change free daily transaction limit";
-        expectErrorMessage(NotByAdmin,expectedErrorMessage);
+        expectErrorMessage(NotByAdmin, expectedErrorMessage);
 
         //change limit to zero
 //        Executable zeroLimit = () -> tokenScore.invoke(A,"changeFreeDailyTxLimit",BigInteger.ZERO);
@@ -140,125 +138,182 @@ public class AppTest extends TestBase {
     }
 
     @Test
-    void mint_test_by_not_nonIssuers(){
+    void mint_test_by_not_nonIssuers() {
         Account A = sm.createAccount();
         BigInteger value = BigInteger.TEN.pow(decimals.intValue());
-        Executable mintNotByIssuerCall = () -> tokenScore.invoke(A,"mintTo", owner.getAddress(), value);
+        Executable mintNotByIssuerCall = () -> tokenScore.invoke(A, "mintTo", owner.getAddress(), value);
         String expectedErrorMessage = "Only issuers can mint";
-        expectErrorMessage(mintNotByIssuerCall,expectedErrorMessage);
+        expectErrorMessage(mintNotByIssuerCall, expectedErrorMessage);
     }
 
     @Test
-    void mint_test_to_zero_Address(){
-        tokenScore.invoke(owner,"addIssuer",owner.getAddress());
+    void mint_test_to_zero_Address() {
+        tokenScore.invoke(owner, "addIssuer", owner.getAddress());
         BigInteger value = BigInteger.TEN.pow(decimals.intValue());
-        Executable mintToZero = () -> tokenScore.invoke(owner,"mintTo", EOA_ZERO, value);
+        Executable mintToZero = () -> tokenScore.invoke(owner, "mintTo", EOA_ZERO, value);
         String expectedErrorMessage = "Cannot mint to zero address";
-        expectErrorMessage(mintToZero,expectedErrorMessage);
+        expectErrorMessage(mintToZero, expectedErrorMessage);
     }
 
     @Test
-    void mint_with_allowance_amount_exceed(){
+    void mint_with_allowance_amount_exceed() {
         BigInteger value = BigInteger.TEN.pow(decimals.intValue());
         //add issuer
-        tokenScore.invoke(owner,"addIssuer",owner.getAddress());
+        tokenScore.invoke(owner, "addIssuer", owner.getAddress());
         //add allowance
-        tokenScore.invoke(owner,"approve",owner.getAddress(),value);
+        tokenScore.invoke(owner, "approve", owner.getAddress(), value);
 
-        Executable allowanceExceed = () -> tokenScore.invoke(owner,"mint", value.add(BigInteger.ONE));
+        Executable allowanceExceed = () -> tokenScore.invoke(owner, "mint", value.add(BigInteger.ONE));
         String expectedErrorMessage = "Allowance amount to mint exceed";
-        expectErrorMessage(allowanceExceed,expectedErrorMessage);
+        expectErrorMessage(allowanceExceed, expectedErrorMessage);
     }
 
     @Test
-    void mint_in_paused_state(){
+    void mint_in_paused_state() {
         BigInteger value = BigInteger.TEN.pow(decimals.intValue());
         //add issuer
-        tokenScore.invoke(owner,"addIssuer",owner.getAddress());
+        tokenScore.invoke(owner, "addIssuer", owner.getAddress());
         //pause
-        tokenScore.invoke(owner,"togglePause");
+        tokenScore.invoke(owner, "togglePause");
 
-        Executable pausedMint = () -> tokenScore.invoke(owner,"mint", value.add(BigInteger.ONE));
+        Executable pausedMint = () -> tokenScore.invoke(owner, "mint", value.add(BigInteger.ONE));
         String expectedErrorMessage = "Cannot mint when paused";
-        expectErrorMessage(pausedMint,expectedErrorMessage);
+        expectErrorMessage(pausedMint, expectedErrorMessage);
 
     }
 
     @Test
-    void mint_flow(){
+    void mint_flow() {
         BigInteger value = BigInteger.TEN.pow(decimals.intValue());
         //check if whitelisted
-        assertEquals(false,tokenScore.call("isWhitelisted",owner.getAddress()));
+        assertEquals(false, tokenScore.call("isWhitelisted", owner.getAddress()));
         //add issuer
-        tokenScore.invoke(owner,"addIssuer",owner.getAddress());
+        tokenScore.invoke(owner, "addIssuer", owner.getAddress());
         //add allowance
-        tokenScore.invoke(owner,"approve",owner.getAddress(),value);
+        tokenScore.invoke(owner, "approve", owner.getAddress(), value);
+        //get Issuer Allowance
+        assertEquals(value, tokenScore.call("issuerAllowance", owner.getAddress()));
         //mint
-        tokenScore.invoke(owner,"mint", value);
+        tokenScore.invoke(owner, "mint", value);
         //check balance
-        assertEquals(value,tokenScore.call("balanceOf",owner.getAddress()));
+        assertEquals(value, tokenScore.call("balanceOf", owner.getAddress()));
         //check totalSupply
-        assertEquals(value,tokenScore.call("totalSupply"));
+        assertEquals(value, tokenScore.call("totalSupply"));
         //check if whitelisted
-        assertEquals(true,tokenScore.call("isWhitelisted",owner.getAddress()));
+        assertEquals(true, tokenScore.call("isWhitelisted", owner.getAddress()));
     }
 
     @Test
-    void burn_test_with_zero_amount(){
-        Executable burn = () -> tokenScore.invoke(owner,"burn", BigInteger.ZERO);
+    void burn_test_with_zero_amount() {
+        Executable burn = () -> tokenScore.invoke(owner, "burn", BigInteger.ZERO);
         String expectedErrorMessage = "Amount to burn should be greater than zero";
-        expectErrorMessage(burn,expectedErrorMessage);
+        expectErrorMessage(burn, expectedErrorMessage);
     }
 
     @Test
-    void burn_with_insufficient_amount(){
+    void burn_with_insufficient_amount() {
         mint_flow();
         BigInteger value = BigInteger.TEN.pow(decimals.intValue());
 
-        Executable insufficientBalance = () -> tokenScore.invoke(owner,"burn", value.add(BigInteger.ONE));
+        Executable insufficientBalance = () -> tokenScore.invoke(owner, "burn", value.add(BigInteger.ONE));
         String expectedErrorMessage = "Insufficient balance to burn";
-        expectErrorMessage(insufficientBalance,expectedErrorMessage);
+        expectErrorMessage(insufficientBalance, expectedErrorMessage);
     }
 
     @Test
-    void burn_in_paused_state(){
+    void burn_in_paused_state() {
         BigInteger value = BigInteger.TEN.pow(decimals.intValue());
         mint_flow();
         //pause
-        tokenScore.invoke(owner,"togglePause");
+        tokenScore.invoke(owner, "togglePause");
 
-        Executable pausedMint = () -> tokenScore.invoke(owner,"burn", value);
+        Executable pausedMint = () -> tokenScore.invoke(owner, "burn", value);
         String expectedErrorMessage = "Cannot burn when paused";
-        expectErrorMessage(pausedMint,expectedErrorMessage);
+        expectErrorMessage(pausedMint, expectedErrorMessage);
 
     }
 
     @Test
-    void burn_flow(){
+    void burn_flow() {
         BigInteger value = BigInteger.TEN.pow(decimals.intValue());
         mint_flow();
         //burn
-        tokenScore.invoke(owner,"burn", value);
+        tokenScore.invoke(owner, "burn", value);
         //check balance
-        assertEquals(BigInteger.ZERO,tokenScore.call("balanceOf",owner.getAddress()));
+        assertEquals(BigInteger.ZERO, tokenScore.call("balanceOf", owner.getAddress()));
         //check totalSupply
-        assertEquals(BigInteger.ZERO,tokenScore.call("totalSupply"));
+        assertEquals(BigInteger.ZERO, tokenScore.call("totalSupply"));
     }
 
     @Test
-    void transfer() {
+    void transfer_test_to_zero_Address() {
+        mint_flow();
+        BigInteger value = BigInteger.TEN.pow(decimals.intValue());
+        Executable transferToZero = () -> tokenScore.invoke(owner, "transfer", EOA_ZERO, value,
+                "transfer".getBytes());
+        String expectedErrorMessage = "Cannot transfer to zero address";
+        expectErrorMessage(transferToZero, expectedErrorMessage);
+    }
+
+    @Test
+    void transfer_test_zero_or_less() {
+        mint_flow();
         Account A = sm.createAccount();
         BigInteger value = BigInteger.TEN.pow(decimals.intValue());
-        tokenScore.invoke(owner, "transfer", A.getAddress(), value, "to alice".getBytes());
-        owner.subtractBalance(symbol, value);
-        assertEquals(owner.getBalance(symbol),
-                tokenScore.call("balanceOf", tokenScore.getOwner().getAddress()));
-        assertEquals(value,
-                tokenScore.call("balanceOf", A.getAddress()));
+        Executable transferZero = () -> tokenScore.invoke(owner, "transfer", A.getAddress(), BigInteger.ZERO,
+                "transfer".getBytes());
+        String expectedErrorMessage = "Cannot transfer zero or less";
+        expectErrorMessage(transferZero, expectedErrorMessage);
+
+        Executable transferNegative = () -> tokenScore.invoke(owner, "transfer", A.getAddress(),
+                BigInteger.ONE.negate(), "transfer".getBytes());
+        expectErrorMessage(transferZero, expectedErrorMessage);
+    }
+
+    @Test
+    void transfer_insufficientBalance() {
+        mint_flow();
+        Account A = sm.createAccount();
+        BigInteger value = BigInteger.TEN.pow(decimals.intValue());
+        Executable transferInsufficientBalance = () -> tokenScore.invoke(owner, "transfer", A.getAddress(),
+                value.add(BigInteger.ONE), "transfer".getBytes());
+        String expectedErrorMessage = "Insufficient Balance";
+        expectErrorMessage(transferInsufficientBalance, expectedErrorMessage);
+    }
+
+    @Test
+    void transfer_when_paused() {
+        Account A = sm.createAccount();
+        mint_flow();
+        //pause
+        tokenScore.invoke(owner, "togglePause");
+        BigInteger value = BigInteger.TEN.pow(decimals.intValue());
+        Executable transferInPause = () -> tokenScore.invoke(owner, "transfer", A.getAddress(), value,
+                "transfer".getBytes());
+        String expectedErrorMessage = "Cannot transfer when paused";
+        expectErrorMessage(transferInPause, expectedErrorMessage);
+    }
+
+    @Test
+    void transfer_flow() {
+        mint_flow();
+        Account A = sm.createAccount();
+        BigInteger value = BigInteger.TEN.pow(decimals.intValue());
+
+        //balance check
+        assertEquals(value, tokenScore.call("balanceOf", owner.getAddress()));
+        assertEquals(BigInteger.ZERO, tokenScore.call("balanceOf", A.getAddress()));
+
+        //transfer
+        tokenScore.invoke(owner, "transfer", A.getAddress(), value.divide(BigInteger.TWO), "transfer".getBytes());
+
+        //balance after transfer
+        assertEquals(value.divide(BigInteger.TWO), tokenScore.call("balanceOf", owner.getAddress()));
+        assertEquals(value.divide(BigInteger.TWO), tokenScore.call("balanceOf", A.getAddress()));
 
         // transfer self
-        tokenScore.invoke(A, "transfer", A.getAddress(), value, "self transfer".getBytes());
-        assertEquals(value, tokenScore.call("balanceOf", A.getAddress()));
+        tokenScore.invoke(A, "transfer", A.getAddress(), value.divide(BigInteger.TWO), "self transfer".getBytes());
+        assertEquals(value.divide(BigInteger.TWO), tokenScore.call("balanceOf", A.getAddress()));
     }
 
     private void expectErrorMessage(Executable contractCall, String errorMessage) {

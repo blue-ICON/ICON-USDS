@@ -2,6 +2,7 @@
 package com.icon.score;
 
 import java.math.BigInteger;
+
 import score.Address;
 import score.annotation.Optional;
 

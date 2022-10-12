@@ -8,6 +8,7 @@ import score.annotation.Optional;
 import java.math.BigInteger;
 //import java.util.ArrayList;
 import scorex.util.ArrayList;
+
 import java.util.List;
 
 import static score.Context.require;
@@ -81,7 +82,7 @@ public class StableCoin extends AbstractStableCoin {
         int len = issuers.size();
         Address[] issuersList = new Address[len];
         for (int i = 0; i < issuers.size(); i++) {
-            issuersList[i]=(issuers.get(i));
+            issuersList[i] = (issuers.get(i));
         }
         return issuersList;
     }
@@ -119,7 +120,7 @@ public class StableCoin extends AbstractStableCoin {
     @External(readonly = true)
     public BigInteger remainingFreeTxThisTerm(Address _owner) {
 
-        if (_whitelist.at(_owner).get("free_tx_start_height")!=null) {
+        if (_whitelist.at(_owner).get("free_tx_start_height") != null) {
             if (_whitelist.at(_owner).get("free_tx_start_height").add(TERM_LENGTH).compareTo(BigInteger.valueOf
                     (Context.getBlockHeight())) < 0) {
                 return freeDailyTLimit.get();
@@ -136,7 +137,7 @@ public class StableCoin extends AbstractStableCoin {
      */
     @External(readonly = true)
     public boolean isWhitelisted(Address _owner) {
-        return _whitelist.at(_owner).get("free_tx_start_height")!=null;
+        return _whitelist.at(_owner).get("free_tx_start_height") != null;
     }
 
 
