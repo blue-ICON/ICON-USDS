@@ -140,7 +140,7 @@ public abstract class AbstractStableCoin implements IRC2Base {
      */
     protected void _transfer(Address _from, Address _to, BigInteger _value, byte[] _data) {
 
-        require(_to != EOA_ZERO, "Cannot transfer to zero address");
+        require(!_to.equals(EOA_ZERO), "Cannot transfer to zero address");
         require(_value.compareTo(BigInteger.ZERO) > 0, "Cannot transfer zero or less");
         require(_balances.getOrDefault(_from,BigInteger.ZERO).compareTo(_value) >= 0, "Insufficient Balance");
         require(!_paused.get(), "Cannot transfer when paused");
@@ -163,14 +163,15 @@ public abstract class AbstractStableCoin implements IRC2Base {
      * @param _value Number of tokens to be minted at the account.
      */
     protected void _mint(Address _to, BigInteger _value) {
-        require(_to != EOA_ZERO, "Cannot mint to zero address");
+        require(!_to.equals(EOA_ZERO), "Cannot mint to zero address");
         require(_value.compareTo(BigInteger.ZERO) > 0, "Amount to mint should be greater than zero");
         require(isIssuer(Context.getCaller()), "Only issuers can mint");
         require(!_paused.get(), "Cannot mint when paused");
 
         BigInteger value = _allowances.getOrDefault(Context.getCaller(),BigInteger.ZERO).subtract(_value);
         _allowances.set(Context.getCaller(), value);
-        require(_allowances.getOrDefault(Context.getCaller(),BigInteger.ZERO).compareTo(_value) >= 0, "Allowance amount to mint exceed");
+        require(_allowances.getOrDefault(Context.getCaller(),BigInteger.ZERO).compareTo(BigInteger.ZERO) >= 0,
+                "Allowance amount to mint exceed");
 
         _whitelistWallet(_to, "whitelist on mint".getBytes());
 
@@ -189,9 +190,10 @@ public abstract class AbstractStableCoin implements IRC2Base {
      * @param _value Number of tokens to be destroyed at the `_from`.
      */
     protected void _burn(Address _from, BigInteger _value) {
-        require(_from != EOA_ZERO, "Cannot burn from zero address");
+        require(!_from.equals(EOA_ZERO), "Cannot burn from zero address");
         require(_value.compareTo(BigInteger.ZERO) > 0, "Amount to burn should be greater than zero");
-        require(_balances.get(_from).compareTo(_value) >= 0, "Insufficient balance to burn");
+        require(_balances.getOrDefault(_from,BigInteger.ZERO).compareTo(_value) >= 0,
+                "Insufficient balance to burn");
         require(!_paused.get(), "Cannot burn when paused");
 
         totalSupply.set(totalSupply.getOrDefault(BigInteger.ZERO).subtract(_value));

@@ -6,7 +6,8 @@ import score.annotation.External;
 import score.annotation.Optional;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
+//import java.util.ArrayList;
+import scorex.util.ArrayList;
 import java.util.List;
 
 import static score.Context.require;
@@ -76,10 +77,11 @@ public class StableCoin extends AbstractStableCoin {
      * @return list of all the issuers.
      */
     @External(readonly = true)
-    public List<Address> getIssuers() {
-        List<Address> issuersList = new ArrayList<>();
+    public Address[] getIssuers() {
+        int len = issuers.size();
+        Address[] issuersList = new Address[len];
         for (int i = 0; i < issuers.size(); i++) {
-            issuersList.add(issuers.get(i));
+            issuersList[i]=(issuers.get(i));
         }
         return issuersList;
     }
@@ -164,7 +166,8 @@ public class StableCoin extends AbstractStableCoin {
      */
     public void changeFreeDailyTxLimit(BigInteger _new_limit) {
 
-        require(_new_limit.compareTo(BigInteger.ZERO) >= 0, "Free daily transaction limit cannot be under 0.");
+        require(_new_limit.compareTo(BigInteger.ZERO) >= 0,
+                "Free daily transaction limit cannot be under 0.");
         onlyAdmin("Only admin can change free daily transaction limit");
 
         freeDailyTLimit.set(_new_limit);
