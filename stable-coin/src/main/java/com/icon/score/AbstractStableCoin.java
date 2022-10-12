@@ -72,7 +72,7 @@ public abstract class AbstractStableCoin implements IRC2Base {
             this.name.set(_name);
             this.symbol.set(_symbol);
             this.decimals.set(_decimals);
-            this.admin.set(Context.getCaller());
+            this.admin.set(_admin);
             this.nIssuers.set(_nIssuers);
             this.totalSupply.set(BigInteger.ZERO);
             this._paused.set(false);
@@ -166,7 +166,7 @@ public abstract class AbstractStableCoin implements IRC2Base {
         require(_to != EOA_ZERO, "Cannot mint to zero address");
         require(_value.compareTo(BigInteger.ZERO) > 0, "Amount to mint should be greater than zero");
         require(isIssuer(Context.getCaller()), "Only issuers can mint");
-        require(!_paused.get(), "Cannot burn when paused");
+        require(!_paused.get(), "Cannot mint when paused");
 
         BigInteger value = _allowances.getOrDefault(Context.getCaller(),BigInteger.ZERO).subtract(_value);
         _allowances.set(Context.getCaller(), value);
@@ -212,7 +212,9 @@ public abstract class AbstractStableCoin implements IRC2Base {
 
         if (_whitelist.at(_to).get("free_tx_start_height") == null) {
             _whitelist.at(_to).set("free_tx_start_height", BigInteger.valueOf(getBlockHeight()));
-            _whitelist.at(_to).set("free_tx_start_height", BigInteger.ONE);
+            _whitelist.at(_to).set("free_tx_count_since_start", BigInteger.ONE);
+
+            WhitelistWallet(_to, _data);
         }
     }
 

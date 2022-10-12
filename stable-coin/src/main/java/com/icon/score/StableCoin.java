@@ -77,11 +77,11 @@ public class StableCoin extends AbstractStableCoin {
      */
     @External(readonly = true)
     public List<Address> getIssuers() {
-        List<Address> temp = new ArrayList<>();
+        List<Address> issuersList = new ArrayList<>();
         for (int i = 0; i < issuers.size(); i++) {
-            temp.add(issuers.get(i));
+            issuersList.add(issuers.get(i));
         }
-        return temp;
+        return issuersList;
     }
 
     /**
@@ -117,7 +117,7 @@ public class StableCoin extends AbstractStableCoin {
     @External(readonly = true)
     public BigInteger remainingFreeTxThisTerm(Address _owner) {
 
-        if (!_whitelist.at(_owner).get("free_tx_start_height").equals(BigInteger.ZERO)) {
+        if (_whitelist.at(_owner).get("free_tx_start_height")!=null) {
             if (_whitelist.at(_owner).get("free_tx_start_height").add(TERM_LENGTH).compareTo(BigInteger.valueOf
                     (Context.getBlockHeight())) < 0) {
                 return freeDailyTLimit.get();
@@ -134,7 +134,7 @@ public class StableCoin extends AbstractStableCoin {
      */
     @External(readonly = true)
     public boolean isWhitelisted(Address _owner) {
-        return !_whitelist.at(_owner).get("free_tx_start_height").equals(BigInteger.ZERO);
+        return _whitelist.at(_owner).get("free_tx_start_height")!=null;
     }
 
 
@@ -219,7 +219,6 @@ public class StableCoin extends AbstractStableCoin {
     public void approve(Address _issuer, BigInteger _value) {
         onlyAdmin("Only admin can approve amount to issuer");
         require(isIssuer(_issuer), "Only issuers can be approved");
-        Context.println("val"+_value);
         _allowances.set(_issuer, _value);
         Approval(Context.getCaller(), _issuer, _value);
     }
