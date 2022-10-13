@@ -28,7 +28,7 @@ public abstract class AbstractStableCoin implements IRC2Base {
     protected final ArrayDB<Address> issuers = Context.newArrayDB("issuers", Address.class);
     protected final VarDB<BigInteger> totalSupply = Context.newVarDB("totalSupply", BigInteger.class);
     protected final VarDB<Boolean> _paused = Context.newVarDB("paused", Boolean.class);
-    protected final VarDB<BigInteger> freeDailyTLimit = Context.newVarDB("freeDailyTLimit", BigInteger.class);
+    protected final VarDB<BigInteger> freeDailyTxLimit = Context.newVarDB("freeDailyTxLimit", BigInteger.class);
     protected final DictDB<Address, BigInteger> _balances = Context.newDictDB("_balances", BigInteger.class);
     protected final DictDB<Address, BigInteger> _allowances = Context.newDictDB("_allowances", BigInteger.class);
     protected final BranchDB<Address, DictDB<String, BigInteger>> _whitelist = Context.newBranchDB("_whitelist", BigInteger.class);
@@ -75,7 +75,7 @@ public abstract class AbstractStableCoin implements IRC2Base {
             this.nIssuers.set(_nIssuers);
             this.totalSupply.set(BigInteger.ZERO);
             this._paused.set(false);
-            this.freeDailyTLimit.set(BigInteger.valueOf(50));
+            this.freeDailyTxLimit.set(BigInteger.valueOf(50));
         }
 
     }
@@ -100,7 +100,7 @@ public abstract class AbstractStableCoin implements IRC2Base {
 //            Context.setFeeSharingProportion(100);
 //
 //        } else if (_whitelist.at(Context.getCaller()).get("free_tx_count_since_start").add(BigInteger.ONE).compareTo
-//                (freeDailyTLimit.get())<=0) {
+//                (freeDailyTxLimit.get())<=0) {
 //            BigInteger newVal = _whitelist.at(Context.getCaller()).get("free_tx_count_since_start").add(BigInteger.ONE);
 //            _whitelist.at(Context.getCaller()).set("free_tx_count_since_start",newVal);
 //            Context.setFeeSharingProportion(100);
@@ -116,7 +116,7 @@ public abstract class AbstractStableCoin implements IRC2Base {
         }
         if (userFeeSharing.get(START_HEIGHT).add(TERM_LENGTH).compareTo(currentBlockHeight) > 0) {
             BigInteger count = userFeeSharing.getOrDefault(TXN_COUNT, BigInteger.ZERO);
-            if (count.compareTo(freeDailyTLimit.get()) < 0) {
+            if (count.compareTo(freeDailyTxLimit.get()) < 0) {
                 userFeeSharing.set(TXN_COUNT, count.add(BigInteger.ONE));
                 Context.setFeeSharingProportion(100);
             }

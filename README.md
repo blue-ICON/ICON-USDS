@@ -1,6 +1,6 @@
-# Java SCORE Examples
+# Stable Coin (Java)
 
-This repository contains template of a java SCORE and instructions on how to deploy a simple java score.
+This repository contains StableCoin score in Java and instruction on how to deploy and run tests. 
 
 
 ## How to Run

@@ -106,7 +106,7 @@ public class StableCoin extends AbstractStableCoin {
     @External(readonly = true)
     public BigInteger freeDailyTxLimit() {
 
-        return freeDailyTLimit.get();
+        return freeDailyTxLimit.get();
     }
 
     /**
@@ -116,12 +116,12 @@ public class StableCoin extends AbstractStableCoin {
     @External(readonly = true)
     public BigInteger remainingFreeTxThisTerm(Address _owner) {
 
-        if (_whitelist.at(_owner).get("free_tx_start_height") != null) {
+        if (_whitelist.at(_owner).get("free_tx_start_height")!=null) {
             if (_whitelist.at(_owner).get("free_tx_start_height").add(TERM_LENGTH).compareTo(BigInteger.valueOf
                     (Context.getBlockHeight())) < 0) {
-                return freeDailyTLimit.get();
+                return freeDailyTxLimit.get();
             } else {
-                return freeDailyTLimit.get().add(_whitelist.at(_owner).get("free_tx_count_since_start"));
+                return freeDailyTxLimit.get().subtract(_whitelist.at(_owner).get("free_tx_count_since_start"));
             }
         }
         return BigInteger.ZERO;
@@ -167,7 +167,7 @@ public class StableCoin extends AbstractStableCoin {
                 "Free daily transaction limit cannot be under 0.");
         onlyAdmin("Only admin can change free daily transaction limit");
 
-        freeDailyTLimit.set(_new_limit);
+        freeDailyTxLimit.set(_new_limit);
     }
 
     /**
