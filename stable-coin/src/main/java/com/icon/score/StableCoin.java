@@ -184,6 +184,7 @@ public class StableCoin extends AbstractStableCoin {
         issuers.add(_issuer);
     }
 
+
     /**
      * Remove issuer from the list of issuers.
      * Sets the allowance of `_issuer` to zero.

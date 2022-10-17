@@ -54,7 +54,7 @@ deployJar {
         arg('_name', 'Stable Token')
         arg('_symbol', 'STO')
         arg('_decimals', '18')
-        arg('_admin', 'hx453814388229978d3cc13c994bb33fa3a34c9cdd')
+        arg('_admin', 'hxf218cb3675aca9c78d82e35482a527be285db389')
         arg('_nIssuers', '2')
     }
 }
