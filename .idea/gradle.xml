@@ -10,6 +10,7 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/stable-coin" />
+            <option value="$PROJECT_DIR$/testinteg" />
           </set>
         </option>
       </GradleProjectSettings>

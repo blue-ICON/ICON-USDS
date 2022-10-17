@@ -1,5 +1,14 @@
 version = '0.9.1'
 
+// for integration tests
+sourceSets {
+    intTest {}
+}
+configurations {
+    intTestImplementation.extendsFrom testImplementation
+    intTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
 dependencies {
     compileOnly 'foundation.icon:javaee-api:0.9.1'
     implementation 'com.github.sink772:javaee-tokens:0.6.1'
@@ -9,6 +18,10 @@ dependencies {
     testImplementation 'org.mockito:mockito-core:4.1.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
+
+    intTestImplementation project(':testinteg')
+    intTestImplementation 'foundation.icon:icon-sdk:2.0.0'
+    intTestRuntimeOnly project(':stable-coin')
 }
 
 optimizedJar {
@@ -49,3 +62,24 @@ deployJar {
 test {
     useJUnitPlatform()
 }
+
+def stableCoinJar = project(':stable-coin').getTasks().getByName('optimizedJar')
+
+task integrationTest(type: Test, dependsOn: optimizedJar) {
+    useJUnitPlatform()
+    description = 'Runs integration tests.'
+    group = 'verification'
+
+    testClassesDirs = sourceSets.intTest.output.classesDirs
+    classpath = sourceSets.intTest.runtimeClasspath
+    testLogging.showStandardStreams = true
+
+    // use the common config files
+    systemProperty('env.props', new File(project(':testinteg').projectDir, 'conf/env.props'))
+
+    def prefix = 'score.path.'
+    systemProperty(prefix + project.name, optimizedJar.outputJarName)
+    systemProperty(prefix + 'stable-coin', stableCoinJar.outputJarName)
+}
+
+integrationTest.dependsOn(stableCoinJar)
