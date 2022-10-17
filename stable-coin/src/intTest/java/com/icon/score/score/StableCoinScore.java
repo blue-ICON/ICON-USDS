@@ -61,9 +61,6 @@ public class StableCoinScore extends Score {
     public BigInteger freeDailyTxLimit() throws IOException {
         return call("freeDailyTxLimit",null).asInteger();
     }
-    public Address getIssuer() throws IOException {
-        return call("getIssuer",null).asAddress();
-    }
 
     public BigInteger remainingFreeTxThisTerm(Address _owner) throws IOException {
         RpcObject params = new RpcObject.Builder()
@@ -130,7 +127,7 @@ public class StableCoinScore extends Score {
     }
 
     public Bytes togglePause(Wallet wallet) throws IOException {
-        return invoke(wallet, "transferAdminRight", null);
+        return invoke(wallet, "togglePause", null);
     }
 
     public Bytes mint(Wallet wallet, BigInteger _value) throws IOException {

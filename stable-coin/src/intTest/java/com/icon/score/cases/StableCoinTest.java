@@ -25,10 +25,12 @@ import foundation.icon.icx.transport.jsonrpc.RpcError;
 import foundation.icon.test.Env;
 import foundation.icon.test.ResultTimeoutException;
 import foundation.icon.test.TestBase;
+import foundation.icon.test.TransactionFailureException;
 import foundation.icon.test.TransactionHandler;
 import com.icon.score.score.StableCoinScore;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -47,10 +49,8 @@ public class StableCoinTest extends TestBase {
     private static KeyWallet[] wallets;
     private static KeyWallet ownerWallet, caller;
 
-    private static StableCoinScore tokenScore;
-
-    @BeforeAll
-    static void setup() throws Exception {
+    @BeforeEach
+     void setup() throws Exception {
         Env.Chain chain = Env.getDefaultChain();
         IconService iconService = new IconService(new HttpProvider(chain.getEndpointURL(3)));
         txHandler = new TransactionHandler(iconService, chain);
@@ -68,7 +68,6 @@ public class StableCoinTest extends TestBase {
         }
         ownerWallet = wallets[0];
         caller = wallets[1];
-        tokenScore = StableCoinScore.mustDeploy(txHandler, ownerWallet);
 
     }
 
@@ -82,6 +81,7 @@ public class StableCoinTest extends TestBase {
     @Test
     public void testStableTokenContractFlow() throws Exception {
 
+        StableCoinScore tokenScore = StableCoinScore.mustDeploy(txHandler, ownerWallet);
         // 1. initial check - getters
         LOG.infoEntering("initial check");
         assertEquals(BigInteger.ZERO, tokenScore.balanceOf(ownerWallet.getAddress()));
@@ -118,6 +118,10 @@ public class StableCoinTest extends TestBase {
         approve=tokenScore.approve(ownerWallet,ownerWallet.getAddress(),value);
         assertSuccess(txHandler.getResult(approve));
 
+        LOG.infoEntering("owner address is whitelisted");
+        assertEquals(true,tokenScore.isWhitelisted(ownerWallet.getAddress()));
+
+
         LOG.infoEntering("mint for caller");
         Bytes mintTo=tokenScore.mintTo(ownerWallet,caller.getAddress(),value);
         assertSuccess(txHandler.getResult(mintTo));
@@ -137,109 +141,64 @@ public class StableCoinTest extends TestBase {
         assertEquals(value, tokenScore.balanceOf(caller.getAddress()));
     };
 
+    @Test
+    public void add_same_issuer_twice() throws IOException, ResultTimeoutException, TransactionFailureException {
+        StableCoinScore tokenScore = StableCoinScore.mustDeploy(txHandler, ownerWallet);
 
+        LOG.infoEntering("admin add owner as issuer");
+        Bytes add=tokenScore.addIssuer(ownerWallet,ownerWallet.getAddress());
+        assertSuccess(txHandler.getResult(add));
 
+        add=tokenScore.addIssuer(ownerWallet,ownerWallet.getAddress());
+        assertFailure(txHandler.getResult(add));
+    }
 
-//
+    @Test
+    public void transfer_admin_right_check_access() throws IOException, ResultTimeoutException, TransactionFailureException {
+        StableCoinScore tokenScore = StableCoinScore.mustDeploy(txHandler, ownerWallet);
 
-//        Bytes[] ids = new Bytes[tokenId.length];
-//        for (int i = 0; i < ids.length; i++) {
-//            ids[i] = tokenScore.mint(ownerWallet, tokenId[i]);
-//        }
-//        for (Bytes id : ids) {
-//            assertSuccess(txHandler.getResult(id));
-//        }
-//        assertEquals(BigInteger.valueOf(tokenId.length), tokenScore.balanceOf(ownerWallet.getAddress()));
-//        assertEquals(BigInteger.valueOf(tokenId.length), tokenScore.totalSupply());
-//        showTokenStatus(tokenScore);
-//        LOG.infoExiting();
-//
-//        // 4. transfer and check
-//        LOG.infoEntering("transfer and check");
-//        BigInteger token = tokenId[0];
-//        assertEquals(ownerWallet.getAddress(), tokenScore.ownerOf(token));
-//        ids[0] = tokenScore.transfer(ownerWallet, caller.getAddress(), token);
-//        assertSuccess(txHandler.getResult(ids[0]));
-//        assertEquals(caller.getAddress(), tokenScore.ownerOf(token));
-//        assertEquals(BigInteger.ONE, tokenScore.balanceOf(caller.getAddress()));
-//        assertEquals(BigInteger.valueOf(tokenId.length-1), tokenScore.balanceOf(ownerWallet.getAddress()));
-//        assertEquals(BigInteger.valueOf(tokenId.length), tokenScore.totalSupply());
-//        assertEquals(token, tokenScore.tokenOfOwnerByIndex(caller.getAddress(), 0));
-//        assertEquals(tokenId[tokenId.length-1], tokenScore.tokenOfOwnerByIndex(ownerWallet.getAddress(), 0));
-//        showTokenStatus(tokenScore);
-//        LOG.infoExiting();
-//
-//        // 5. approve and check
-//        LOG.infoEntering("approve and check");
-//        token = tokenId[1];
-//        assertEquals(ZERO_ADDRESS, tokenScore.getApproved(token));
-//        ids[1] = tokenScore.approve(ownerWallet, caller.getAddress(), token);
-//        assertSuccess(txHandler.getResult(ids[1]));
-//        assertEquals(caller.getAddress(), tokenScore.getApproved(token));
-//        showTokenStatus(tokenScore);
-//
-//        assertEquals(ownerWallet.getAddress(), tokenScore.ownerOf(token));
-//        ids[2] = tokenScore.transferFrom(caller, ownerWallet.getAddress(), caller.getAddress(), token);
-//        assertSuccess(txHandler.getResult(ids[2]));
-//        assertEquals(ZERO_ADDRESS, tokenScore.getApproved(token));
-//        assertEquals(caller.getAddress(), tokenScore.ownerOf(token));
-//        assertEquals(BigInteger.TWO, tokenScore.balanceOf(caller.getAddress()));
-//        assertEquals(BigInteger.valueOf(tokenId.length-2), tokenScore.balanceOf(ownerWallet.getAddress()));
-//        assertEquals(BigInteger.valueOf(tokenId.length), tokenScore.totalSupply());
-//        assertEquals(token, tokenScore.tokenOfOwnerByIndex(caller.getAddress(), 1));
-//        assertEquals(tokenId[tokenId.length-2], tokenScore.tokenOfOwnerByIndex(ownerWallet.getAddress(), 1));
-//        showTokenStatus(tokenScore);
-//        LOG.infoExiting();
-//
-//        // 6. burn and check
-//        LOG.infoEntering("burn and check");
-//        var balance = tokenScore.balanceOf(ownerWallet.getAddress());
-//        token = tokenScore.tokenOfOwnerByIndex(ownerWallet.getAddress(), 0);
-//        ids[0] = tokenScore.burn(ownerWallet, token);
-//        assertSuccess(txHandler.getResult(ids[0]));
-//        assertEquals(balance.subtract(BigInteger.ONE), tokenScore.balanceOf(ownerWallet.getAddress()));
-//        assertEquals(BigInteger.valueOf(tokenId.length-1), tokenScore.totalSupply());
-//        showTokenStatus(tokenScore);
-//        LOG.infoExiting();
-//
-//        // 7. negative tests
-//        LOG.infoEntering("negative tests");
-//        final var nonExistToken = token; // burned token
-//        assertThrows(RpcError.class, () -> tokenScore.ownerOf(nonExistToken));
-//        assertFailure(txHandler.getResult(
-//                tokenScore.transferFrom(caller, ownerWallet.getAddress(), caller.getAddress(), tokenId[2])));
-//        LOG.infoExiting();
-//    }
-//
-//    private void showTokenStatus(StableCoinScore tokenScore) throws Exception {
-//        if (!DEBUG) { return; }
-//        var totalSupply = tokenScore.totalSupply();
-//        System.out.println(">>> totalSupply = " + totalSupply);
-//        for (int i = 0; i < totalSupply.intValue(); i++) {
-//            var token = tokenScore.tokenByIndex(i);
-//            var owner = tokenScore.ownerOf(token);
-//            var approved = tokenScore.getApproved(token);
-//            System.out.printf("   [%s](%s)<%s>\n", token, owner,
-//                    approved.equals(ZERO_ADDRESS) ? "null" : approved);
-//        }
-//        var ownerBalance = tokenScore.balanceOf(ownerWallet.getAddress());
-//        System.out.println("   == balanceOf owner: " + ownerBalance);
-//        for (int i = 0; i < ownerBalance.intValue(); i++) {
-//            var token = tokenScore.tokenOfOwnerByIndex(ownerWallet.getAddress(), i);
-//            System.out.printf("     -- %d: [%s]\n", i, token);
-//        }
-//        var callerBalance = tokenScore.balanceOf(caller.getAddress());
-//        System.out.println("   == balanceOf caller: " + callerBalance);
-//        for (int i = 0; i < callerBalance.intValue(); i++) {
-//            var token = tokenScore.tokenOfOwnerByIndex(caller.getAddress(), i);
-//            System.out.printf("     -- %d: [%s]\n", i, token);
-//        }
-//    }
-//
-//    private byte[] getRandomBytes(int size) {
-//        byte[] bytes = new byte[size];
-//        secureRandom.nextBytes(bytes);
-//        bytes[0] = 0; // make positive
-//        return bytes;
-//    }
+        LOG.infoEntering("transfer admin right");
+        Bytes adminRight=tokenScore.transferAdminRight(ownerWallet,caller.getAddress());
+        assertSuccess(txHandler.getResult(adminRight));
+
+        LOG.infoEntering("owner add owner as issuer");
+        Bytes add=tokenScore.addIssuer(ownerWallet,ownerWallet.getAddress());
+        assertFailure(txHandler.getResult(add));
+
+        LOG.infoEntering("owner add owner as issuer");
+        add=tokenScore.addIssuer(caller,ownerWallet.getAddress());
+        assertSuccess(txHandler.getResult(add));
+    }
+
+    @Test
+    public void check_transactions_when_paused() throws IOException, ResultTimeoutException, TransactionFailureException {
+        StableCoinScore tokenScore = StableCoinScore.mustDeploy(txHandler, ownerWallet);
+
+        BigInteger value = BigInteger.TEN.pow(tokenScore.decimals().intValue());
+
+        LOG.infoEntering("admin add owner as issuer");
+        Bytes add=tokenScore.addIssuer(ownerWallet,ownerWallet.getAddress());
+        assertSuccess(txHandler.getResult(add));
+
+        LOG.infoEntering("admin approve owner to mint value amount");
+        Bytes approve=tokenScore.approve(ownerWallet,ownerWallet.getAddress(),value);
+        assertSuccess(txHandler.getResult(approve));
+
+        LOG.infoEntering("admin pause the contract");
+        Bytes togglePause=tokenScore.togglePause(ownerWallet);
+        assertSuccess(txHandler.getResult(togglePause));
+
+        LOG.infoEntering("mint fails when paused");
+        Bytes mint=tokenScore.mint(ownerWallet,value);
+        assertFailure(txHandler.getResult(mint));
+
+        LOG.infoEntering("burn fails when paused");
+        Bytes burn=tokenScore.burn(caller,value.divide(BigInteger.TWO));
+        assertFailure(txHandler.getResult(burn));
+
+        LOG.infoEntering("transfer fails when paused");
+        Bytes transfer=tokenScore.transfer(ownerWallet,caller.getAddress(),value.divide(BigInteger.TWO),"transfer".getBytes());
+        assertFailure(txHandler.getResult(transfer));
+    }
+
 }
