@@ -20,6 +20,7 @@ import foundation.icon.icx.IconService;
 import foundation.icon.icx.KeyWallet;
 import foundation.icon.icx.data.Address;
 import foundation.icon.icx.data.Bytes;
+import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.http.HttpProvider;
 import foundation.icon.test.Env;
 import foundation.icon.test.ResultTimeoutException;
@@ -28,9 +29,7 @@ import foundation.icon.test.TransactionFailureException;
 import foundation.icon.test.TransactionHandler;
 import com.icon.score.score.StableCoinScore;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -99,31 +98,50 @@ public class StableCoinTest extends TestBase {
             burn();
         }
 
-        // 2. Add Issuers caller
+        // 1. Add Issuers caller
         LOG.infoEntering("admin add owner as issuer");
         Bytes add = tokenScore.addIssuer(ownerWallet, caller.getAddress());
         assertSuccess(txHandler.getResult(add));
 
-        // 2. Approve Issuers a amount
+        // 2. Approve Issuers an amount
         LOG.infoEntering("admin approve owner to mint value amount");
         Bytes approve = tokenScore.approve(ownerWallet, caller.getAddress(), value);
-        assertSuccess(txHandler.getResult(approve));
+        TransactionResult txResult = txHandler.getResult(approve);
+        assertSuccess(txResult);
+
+        // verify event log
+        tokenScore.approvalLog(txResult,ownerWallet.getAddress(),caller.getAddress(),value);
 
         // 3. mint some tokens
         LOG.infoEntering("mint amount by caller");
         Bytes mint = tokenScore.mint(caller, value);
-        assertSuccess(txHandler.getResult(mint));
+        txResult = txHandler.getResult(mint);
+        assertSuccess(txResult);
         assertEquals(value, tokenScore.balanceOf(caller.getAddress()));
+
+        // verify event logs
+        tokenScore.mintLog(txResult,caller.getAddress(),value);
+        tokenScore.whiteListLog(txResult,caller.getAddress(),"whitelist on mint".getBytes());
+        tokenScore.transferLog(txResult,ZERO_ADDRESS,caller.getAddress(),value,"mint".getBytes());
 
         // 4. mint
         LOG.infoEntering("admin approve owner to mint value amount");
         approve = tokenScore.approve(ownerWallet, ownerWallet.getAddress(), value);
-        assertSuccess(txHandler.getResult(approve));
+        txResult = txHandler.getResult(approve);
+        assertSuccess(txResult);
+
+        // verify event log
+        tokenScore.approvalLog(txResult,ownerWallet.getAddress(),ownerWallet.getAddress(),value);
 
         LOG.infoEntering("mint by owner");
         Bytes mintTo = tokenScore.mint(ownerWallet, value);
-        assertSuccess(txHandler.getResult(mintTo));
+        txResult = txHandler.getResult(mintTo);
+        assertSuccess(txResult);
         assertEquals(value, tokenScore.balanceOf(ownerWallet.getAddress()));
+
+        // verify event logs
+        tokenScore.mintLog(txResult,ownerWallet.getAddress(),value);
+        tokenScore.transferLog(txResult,ZERO_ADDRESS,ownerWallet.getAddress(),value,"mint".getBytes());
 
         LOG.infoEntering("owner address is whitelisted");
         assertEquals(true, tokenScore.isWhitelisted(ownerWallet.getAddress()));
@@ -131,15 +149,25 @@ public class StableCoinTest extends TestBase {
         // 4. burn half tokens of caller
         LOG.infoEntering("burn from caller");
         Bytes burn = tokenScore.burn(caller, value.divide(BigInteger.TWO));
-        assertSuccess(txHandler.getResult(burn));
+        txResult = txHandler.getResult(burn);
+        assertSuccess(txResult);
         assertEquals((value.divide(BigInteger.TWO)), tokenScore.balanceOf(caller.getAddress()));
 
-        // 4. transfer half tokens from owner to caller
+        //verify event logs
+        tokenScore.burnLog(txResult,caller.getAddress(),value.divide(BigInteger.TWO));
+        tokenScore.transferLog(txResult,caller.getAddress(),ZERO_ADDRESS,value.divide(BigInteger.TWO),"burn".getBytes());
+
+        // 5. transfer half tokens from owner to caller
         LOG.infoEntering("transfer from owner to caller");
-        Bytes transfer = tokenScore.transfer(ownerWallet, caller.getAddress(), value.divide(BigInteger.TWO), "transfer".getBytes());
-        assertSuccess(txHandler.getResult(transfer));
+        Bytes transfer = tokenScore.transfer(ownerWallet, caller.getAddress(), value.divide(BigInteger.TWO),
+                "transfer".getBytes());
+        txResult = txHandler.getResult(transfer);
+        assertSuccess(txResult);
         assertEquals(value, tokenScore.balanceOf(caller.getAddress()));
-        System.out.println(txHandler.getResult(transfer));
+
+        //verify event logs
+        tokenScore.transferLog(txResult,ownerWallet.getAddress(),caller.getAddress(),value.divide(BigInteger.TWO),
+                "transfer".getBytes());
 
     }
 
