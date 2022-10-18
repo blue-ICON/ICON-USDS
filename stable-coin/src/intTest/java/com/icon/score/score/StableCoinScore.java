@@ -17,6 +17,7 @@ import score.annotation.Optional;
 import javax.naming.Context;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.List;
 
 import static foundation.icon.test.Env.LOG;
 
@@ -75,10 +76,9 @@ public class StableCoinScore extends Score {
         return call("isWhitelisted",params).asBoolean();
     }
 
-    public void getIssuers() throws IOException {
+    public List<RpcItem> getIssuers() throws IOException {
         RpcItem issuers = call("getIssuers",null);
-        RpcArray items = issuers.asArray();
-        System.out.println(items);
+        return issuers.asArray().asList();
     }
 
     public Bytes transfer(Wallet wallet, Address _to, BigInteger _value, @Optional byte[] _data) throws IOException {

@@ -27,9 +27,15 @@ import foundation.icon.test.TestBase;
 import foundation.icon.test.TransactionFailureException;
 import foundation.icon.test.TransactionHandler;
 import com.icon.score.score.StableCoinScore;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestMethodOrder;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -38,6 +44,8 @@ import java.security.SecureRandom;
 import static foundation.icon.test.Env.LOG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class StableCoinTest extends TestBase {
     private static final boolean DEBUG = true;
     private static final Address ZERO_ADDRESS = new Address("hx0000000000000000000000000000000000000000");
@@ -47,8 +55,8 @@ public class StableCoinTest extends TestBase {
     private static KeyWallet ownerWallet, caller;
     private static StableCoinScore tokenScore;
 
-    @BeforeEach
-    void setup() throws Exception {
+    @BeforeAll
+     static void setup() throws Exception {
         Env.Chain chain = Env.getDefaultChain();
         IconService iconService = new IconService(new HttpProvider(chain.getEndpointURL(3)));
         txHandler = new TransactionHandler(iconService, chain);
@@ -67,17 +75,16 @@ public class StableCoinTest extends TestBase {
         ownerWallet = wallets[0];
         caller = wallets[1];
         tokenScore = StableCoinScore.mustDeploy(txHandler, ownerWallet);
-
-
     }
 
-    @AfterEach
-    void shutdown() throws Exception {
+    @AfterAll
+    static void shutdown() throws Exception {
         for (KeyWallet wallet : wallets) {
             txHandler.refundAll(wallet);
         }
     }
 
+    @Order(1)
     @Test
     public void testStableTokenContractFlow() throws Exception {
         // 1. initial check - getters
@@ -110,6 +117,7 @@ public class StableCoinTest extends TestBase {
         Bytes mint = tokenScore.mint(ownerWallet, value);
         assertSuccess(txHandler.getResult(mint));
         assertEquals(value, tokenScore.balanceOf(ownerWallet.getAddress()));
+        System.out.println("mint Tx"+txHandler.getResult(mint));
 
         // 4. mint to caller
         LOG.infoEntering("admin approve owner to mint value amount");
@@ -136,12 +144,28 @@ public class StableCoinTest extends TestBase {
         Bytes transfer = tokenScore.transfer(ownerWallet, caller.getAddress(), value.divide(BigInteger.TWO), "transfer".getBytes());
         assertSuccess(txHandler.getResult(transfer));
         assertEquals(value, tokenScore.balanceOf(caller.getAddress()));
+        System.out.println(txHandler.getResult(transfer));
+
     }
 
-    ;
 
     @Test
-    public void add_same_issuer_twice() throws IOException, ResultTimeoutException, TransactionFailureException {
+    public void add_same_issuer_twice() throws IOException, ResultTimeoutException {
+
+        LOG.infoEntering("admin add owner as issuer");
+        Bytes add = tokenScore.addIssuer(ownerWallet, ownerWallet.getAddress());
+        assertSuccess(txHandler.getResult(add));
+        System.out.println(txHandler.getResult(add));
+
+        assertEquals(ownerWallet.getAddress().toString(),tokenScore.getIssuers().get(0).asString());
+        assertEquals(1,tokenScore.getIssuers().size());
+
+        add = tokenScore.addIssuer(ownerWallet, ownerWallet.getAddress());
+        assertFailure(txHandler.getResult(add));
+    }
+
+    @Test
+    public void transfer_to_self() throws IOException, ResultTimeoutException {
 
         LOG.infoEntering("admin add owner as issuer");
         Bytes add = tokenScore.addIssuer(ownerWallet, ownerWallet.getAddress());
