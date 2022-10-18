@@ -128,12 +128,13 @@ public class AppTest extends TestBase {
         expectErrorMessage(NotByAdmin, expectedErrorMessage);
 
         //change limit to zero
-//        Executable zeroLimit = () -> tokenScore.invoke(A,"changeFreeDailyTxLimit",BigInteger.ZERO);
-//        expectedErrorMessage = "Free daily transaction limit cannot be under 0.";
-//        expectErrorMessage(zeroLimit,expectedErrorMessage);
+        Executable zeroLimit = () -> tokenScore.invoke(A,"changeFreeDailyTxLimit",BigInteger.ONE.negate());
+        expectedErrorMessage = "Free daily transaction limit cannot be under 0.";
+        expectErrorMessage(zeroLimit,expectedErrorMessage);
 
         //change to 2
-//        tokenScore.invoke(owner,"changeFreeDailyTxLimit",BigInteger.TWO);
+        tokenScore.invoke(owner,"changeFreeDailyTxLimit",BigInteger.TWO);
+        assertEquals(BigInteger.TWO, tokenScore.call("freeDailyTxLimit"));
     }
 
     @Test
