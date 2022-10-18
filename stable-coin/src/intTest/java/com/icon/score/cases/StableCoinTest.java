@@ -165,17 +165,6 @@ public class StableCoinTest extends TestBase {
     }
 
     @Test
-    public void transfer_to_self() throws IOException, ResultTimeoutException {
-
-        LOG.infoEntering("admin add owner as issuer");
-        Bytes add = tokenScore.addIssuer(ownerWallet, ownerWallet.getAddress());
-        assertSuccess(txHandler.getResult(add));
-
-        add = tokenScore.addIssuer(ownerWallet, ownerWallet.getAddress());
-        assertFailure(txHandler.getResult(add));
-    }
-
-    @Test
     public void remove_issuer_and_nonexistent_issuer() throws IOException, ResultTimeoutException, TransactionFailureException {
         LOG.infoEntering("admin add owner as issuer");
         Bytes add = tokenScore.addIssuer(ownerWallet, ownerWallet.getAddress());
@@ -323,6 +312,24 @@ public class StableCoinTest extends TestBase {
         LOG.infoEntering("transfer more than balance - fails");
         Bytes transfer = tokenScore.transfer(ownerWallet, caller.getAddress(), value.add(BigInteger.TWO), "transfer".getBytes());
         assertFailure(txHandler.getResult(transfer));
+    }
+
+    @Test
+    public void transfer_to_self() throws IOException, ResultTimeoutException {
+
+        BigInteger value = BigInteger.TEN.pow(tokenScore.decimals().intValue());
+
+        add_and_approve(tokenScore, value);
+
+        LOG.infoEntering("mint amount value");
+        Bytes mint = tokenScore.mint(ownerWallet, value);
+        assertSuccess(txHandler.getResult(mint));
+
+        LOG.infoEntering("transfer self");
+        Bytes transfer = tokenScore.transfer(ownerWallet, ownerWallet.getAddress(), value.divide(BigInteger.TWO), "transfer".getBytes());
+        assertSuccess(txHandler.getResult(transfer));
+        assertEquals(value,tokenScore.balanceOf(ownerWallet.getAddress()));
+        assertEquals(value,tokenScore.totalSupply());
     }
 
     @Test
