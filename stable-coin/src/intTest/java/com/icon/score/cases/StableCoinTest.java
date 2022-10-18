@@ -131,7 +131,6 @@ public class StableCoinTest extends TestBase {
         assertSuccess(txHandler.getResult(burn));
         assertEquals(value.divide(BigInteger.TWO), tokenScore.balanceOf(caller.getAddress()));
 
-
         // 4. transfer half tokens from owner to caller
         LOG.infoEntering("transfer from owner to caller");
         Bytes transfer = tokenScore.transfer(ownerWallet, caller.getAddress(), value.divide(BigInteger.TWO), "transfer".getBytes());
@@ -261,9 +260,9 @@ public class StableCoinTest extends TestBase {
 
         add_and_approve(tokenScore, value);
 
-        LOG.infoEntering("mint fails when minting zero");
+        LOG.infoEntering("mint to caller amount value");
         Bytes mint = tokenScore.mintTo(ownerWallet, caller.getAddress(), value);
-        assertFailure(txHandler.getResult(mint));
+        assertSuccess(txHandler.getResult(mint));
 
         LOG.infoEntering("transfer fails when value = zero ");
         Bytes transfer = tokenScore.transfer(ownerWallet, caller.getAddress(), BigInteger.ZERO, "transfer".getBytes());
