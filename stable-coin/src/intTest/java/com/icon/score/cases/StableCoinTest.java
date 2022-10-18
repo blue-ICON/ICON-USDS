@@ -40,6 +40,8 @@ import org.junit.jupiter.api.TestMethodOrder;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.SecureRandom;
+import java.util.HashMap;
+import java.util.Map;
 
 import static foundation.icon.test.Env.LOG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -54,6 +56,9 @@ public class StableCoinTest extends TestBase {
     private static KeyWallet[] wallets;
     private static KeyWallet ownerWallet, caller;
     private static StableCoinScore tokenScore;
+    private static BigInteger value;
+
+    private Map<String, Boolean> status = new HashMap<>();
 
     @BeforeAll
      static void setup() throws Exception {
@@ -75,6 +80,7 @@ public class StableCoinTest extends TestBase {
         ownerWallet = wallets[0];
         caller = wallets[1];
         tokenScore = StableCoinScore.mustDeploy(txHandler, ownerWallet);
+        value = BigInteger.TEN.pow(tokenScore.decimals().intValue());
     }
 
     @AfterAll
@@ -84,60 +90,49 @@ public class StableCoinTest extends TestBase {
         }
     }
 
-    @Order(1)
+    @Order(15)
     @Test
     public void testStableTokenContractFlow() throws Exception {
-        // 1. initial check - getters
-        LOG.infoEntering("initial check");
-        assertEquals(BigInteger.ZERO, tokenScore.balanceOf(ownerWallet.getAddress()));
-        assertEquals(BigInteger.ZERO, tokenScore.balanceOf(caller.getAddress()));
-        assertEquals(BigInteger.ZERO, tokenScore.totalSupply());
-        assertEquals("Stable Token", tokenScore.name());
-        assertEquals("STO", tokenScore.symbol());
-        assertEquals(ownerWallet.getAddress(), tokenScore.admin());
-        assertEquals(BigInteger.valueOf(18), tokenScore.decimals());
-        assertEquals(BigInteger.valueOf(50), tokenScore.freeDailyTxLimit());
+        if(!status.getOrDefault("add_and_approve_owner",false)){
+            add_and_approve(tokenScore,value);
+        }else {
+            burn();
+        }
 
-        BigInteger value = BigInteger.TEN.pow(tokenScore.decimals().intValue());
-
-        // 2. Add Issuers
+        // 2. Add Issuers caller
         LOG.infoEntering("admin add owner as issuer");
-        Bytes add = tokenScore.addIssuer(ownerWallet, ownerWallet.getAddress());
+        Bytes add = tokenScore.addIssuer(ownerWallet, caller.getAddress());
         assertSuccess(txHandler.getResult(add));
 
         // 2. Approve Issuers a amount
         LOG.infoEntering("admin approve owner to mint value amount");
-        Bytes approve = tokenScore.approve(ownerWallet, ownerWallet.getAddress(), value);
+        Bytes approve = tokenScore.approve(ownerWallet, caller.getAddress(), value);
         assertSuccess(txHandler.getResult(approve));
 
-        tokenScore.getIssuers();
-
         // 3. mint some tokens
-        LOG.infoEntering("mint for owner");
-        Bytes mint = tokenScore.mint(ownerWallet, value);
+        LOG.infoEntering("mint amount by caller");
+        Bytes mint = tokenScore.mint(caller, value);
         assertSuccess(txHandler.getResult(mint));
-        assertEquals(value, tokenScore.balanceOf(ownerWallet.getAddress()));
-        System.out.println("mint Tx"+txHandler.getResult(mint));
+        assertEquals(value, tokenScore.balanceOf(caller.getAddress()));
 
-        // 4. mint to caller
+        // 4. mint
         LOG.infoEntering("admin approve owner to mint value amount");
         approve = tokenScore.approve(ownerWallet, ownerWallet.getAddress(), value);
         assertSuccess(txHandler.getResult(approve));
 
+        LOG.infoEntering("mint by owner");
+        Bytes mintTo = tokenScore.mint(ownerWallet, value);
+        assertSuccess(txHandler.getResult(mintTo));
+        assertEquals(value, tokenScore.balanceOf(ownerWallet.getAddress()));
+
         LOG.infoEntering("owner address is whitelisted");
         assertEquals(true, tokenScore.isWhitelisted(ownerWallet.getAddress()));
-
-
-        LOG.infoEntering("mint for caller");
-        Bytes mintTo = tokenScore.mintTo(ownerWallet, caller.getAddress(), value);
-        assertSuccess(txHandler.getResult(mintTo));
-        assertEquals(value, tokenScore.balanceOf(caller.getAddress()));
 
         // 4. burn half tokens of caller
         LOG.infoEntering("burn from caller");
         Bytes burn = tokenScore.burn(caller, value.divide(BigInteger.TWO));
         assertSuccess(txHandler.getResult(burn));
-        assertEquals(value.divide(BigInteger.TWO), tokenScore.balanceOf(caller.getAddress()));
+        assertEquals((value.divide(BigInteger.TWO)), tokenScore.balanceOf(caller.getAddress()));
 
         // 4. transfer half tokens from owner to caller
         LOG.infoEntering("transfer from owner to caller");
@@ -148,37 +143,54 @@ public class StableCoinTest extends TestBase {
 
     }
 
+    @Order(1)
+    @Test
+    public void initialCheck() throws IOException {
+        LOG.infoEntering("initial check");
+        assertEquals(BigInteger.ZERO, tokenScore.balanceOf(ownerWallet.getAddress()));
+        assertEquals(BigInteger.ZERO, tokenScore.balanceOf(caller.getAddress()));
+        assertEquals(BigInteger.ZERO, tokenScore.totalSupply());
+        assertEquals("Stable Token", tokenScore.name());
+        assertEquals("STO", tokenScore.symbol());
+        assertEquals(ownerWallet.getAddress(), tokenScore.admin());
+        assertEquals(BigInteger.valueOf(18), tokenScore.decimals());
+        assertEquals(BigInteger.valueOf(50), tokenScore.freeDailyTxLimit());
+    }
 
+    @Order(2)
     @Test
     public void add_same_issuer_twice() throws IOException, ResultTimeoutException {
 
-        LOG.infoEntering("admin add owner as issuer");
-        Bytes add = tokenScore.addIssuer(ownerWallet, ownerWallet.getAddress());
-        assertSuccess(txHandler.getResult(add));
-        System.out.println(txHandler.getResult(add));
+        if(!status.getOrDefault("add_and_approve_owner",false)){
+            add_and_approve(tokenScore,value);
+        }
 
         assertEquals(ownerWallet.getAddress().toString(),tokenScore.getIssuers().get(0).asString());
         assertEquals(1,tokenScore.getIssuers().size());
 
-        add = tokenScore.addIssuer(ownerWallet, ownerWallet.getAddress());
+        Bytes add = tokenScore.addIssuer(ownerWallet, ownerWallet.getAddress());
         assertFailure(txHandler.getResult(add));
     }
 
+    @Order(3)
     @Test
     public void remove_issuer_and_nonexistent_issuer() throws IOException, ResultTimeoutException, TransactionFailureException {
-        LOG.infoEntering("admin add owner as issuer");
-        Bytes add = tokenScore.addIssuer(ownerWallet, ownerWallet.getAddress());
-        assertSuccess(txHandler.getResult(add));
+        if(!status.getOrDefault("add_and_approve_owner",false)){
+            add_and_approve(tokenScore,value);
+        }
 
-        LOG.infoEntering("admin remove owner as issuer");
+        LOG.infoEntering("admin removes owner as issuer");
         Bytes remove = tokenScore.removeIssuer(ownerWallet, ownerWallet.getAddress());
         assertSuccess(txHandler.getResult(remove));
 
         LOG.infoEntering("admin try remove owner as issuer again");
         remove = tokenScore.removeIssuer(ownerWallet, ownerWallet.getAddress());
         assertFailure(txHandler.getResult(remove));
+
+        status.put("add_and_approve_owner",false);
     }
 
+    @Order(4)
     @Test
     public void transfer_admin_right_check_access() throws IOException, ResultTimeoutException, TransactionFailureException {
 
@@ -190,17 +202,28 @@ public class StableCoinTest extends TestBase {
         Bytes add = tokenScore.addIssuer(ownerWallet, ownerWallet.getAddress());
         assertFailure(txHandler.getResult(add));
 
-        LOG.infoEntering("owner add owner as issuer");
+        LOG.infoEntering("caller add owner as issuer");
         add = tokenScore.addIssuer(caller, ownerWallet.getAddress());
         assertSuccess(txHandler.getResult(add));
+
+        LOG.infoEntering("caller remove owner as issuer");
+        Bytes remove = tokenScore.removeIssuer(caller, ownerWallet.getAddress());
+        assertSuccess(txHandler.getResult(remove));
+
+        LOG.infoEntering("transfer admin right back to owner");
+        adminRight = tokenScore.transferAdminRight(caller, ownerWallet.getAddress());
+        assertSuccess(txHandler.getResult(adminRight));
+
+        status.put("add_and_approve_owner",false);
     }
 
+    @Order(5)
     @Test
     public void check_transactions_when_paused() throws IOException, ResultTimeoutException, TransactionFailureException {
 
-        BigInteger value = BigInteger.TEN.pow(tokenScore.decimals().intValue());
-
-        add_and_approve(tokenScore, value);
+        if(!status.getOrDefault("add_and_approve_owner",false)){
+            add_and_approve(tokenScore,value);
+        }
 
         LOG.infoEntering("admin pause the contract");
         Bytes togglePause = tokenScore.togglePause(ownerWallet);
@@ -217,14 +240,19 @@ public class StableCoinTest extends TestBase {
         LOG.infoEntering("transfer fails when paused");
         Bytes transfer = tokenScore.transfer(ownerWallet, caller.getAddress(), value.divide(BigInteger.TWO), "transfer".getBytes());
         assertFailure(txHandler.getResult(transfer));
+
+        LOG.infoEntering("admin unpause the contract");
+        togglePause = tokenScore.togglePause(ownerWallet);
+        assertSuccess(txHandler.getResult(togglePause));
     }
 
+    @Order(6)
     @Test
     public void check_transaction_minting_more_than_allowance() throws IOException, ResultTimeoutException, TransactionFailureException {
 
-        BigInteger value = BigInteger.TEN.pow(tokenScore.decimals().intValue());
-
-        add_and_approve(tokenScore, value);
+        if(!status.getOrDefault("add_and_approve_owner",false)){
+            add_and_approve(tokenScore,value);
+        }
 
         LOG.infoEntering("mint fails when minting value is more than allowance");
         Bytes mint = tokenScore.mint(ownerWallet, value.add(BigInteger.TWO));
@@ -232,98 +260,108 @@ public class StableCoinTest extends TestBase {
 
     }
 
+    @Order(7)
     @Test
     public void mint_to_zero_address() throws IOException, ResultTimeoutException, TransactionFailureException {
 
-        BigInteger value = BigInteger.TEN.pow(tokenScore.decimals().intValue());
-
-        add_and_approve(tokenScore, value);
+        if(!status.getOrDefault("add_and_approve_owner",false)){
+            add_and_approve(tokenScore,value);
+        }
 
         LOG.infoEntering("mint fails when minting to zero address");
         Bytes mint = tokenScore.mintTo(ownerWallet, ZERO_ADDRESS, value);
         assertFailure(txHandler.getResult(mint));
     }
 
+    @Order(8)
     @Test
     public void mint_by_non_issuers() throws IOException, ResultTimeoutException, TransactionFailureException {
-
-        BigInteger value = BigInteger.TEN.pow(tokenScore.decimals().intValue());
+        if(!status.getOrDefault("add_and_approve_owner",false)){
+            add_and_approve(tokenScore,value);
+        }
 
         LOG.infoEntering("mint fails when done by non Issuer");
-        Bytes mint = tokenScore.mintTo(ownerWallet, ZERO_ADDRESS, value);
+        Bytes mint = tokenScore.mint(caller, value);
         assertFailure(txHandler.getResult(mint));
     }
 
+    @Order(9)
     @Test
     public void mint_zero_or_less() throws IOException, ResultTimeoutException, TransactionFailureException {
-
-        BigInteger value = BigInteger.TEN.pow(tokenScore.decimals().intValue());
-
-        add_and_approve(tokenScore, value);
+        if(!status.getOrDefault("add_and_approve_owner",false)){
+            add_and_approve(tokenScore,value);
+        }
 
         LOG.infoEntering("mint fails when minting zero");
         Bytes mint = tokenScore.mintTo(ownerWallet, caller.getAddress(), BigInteger.ZERO);
         assertFailure(txHandler.getResult(mint));
+
+        LOG.infoEntering("mint fails when minting negative");
+        mint = tokenScore.mintTo(ownerWallet, caller.getAddress(), BigInteger.ONE.negate());
+        assertFailure(txHandler.getResult(mint));
     }
 
+    @Order(10)
     @Test
     public void transfer_zero_or_less() throws IOException, ResultTimeoutException, TransactionFailureException {
 
-        BigInteger value = BigInteger.TEN.pow(tokenScore.decimals().intValue());
+        if(!status.getOrDefault("add_and_approve_owner",false)){
+            add_and_approve(tokenScore,value);
+        }
 
-        add_and_approve(tokenScore, value);
-
-        LOG.infoEntering("mint to caller amount value");
-        Bytes mint = tokenScore.mintTo(ownerWallet, caller.getAddress(), value);
-        assertSuccess(txHandler.getResult(mint));
-
+        if(!status.getOrDefault("mint",false)){
+            mint();
+        }
         LOG.infoEntering("transfer fails when value = zero ");
         Bytes transfer = tokenScore.transfer(ownerWallet, caller.getAddress(), BigInteger.ZERO, "transfer".getBytes());
         assertFailure(txHandler.getResult(transfer));
+
+        LOG.infoEntering("transfer fails when value = negative ");
+        transfer = tokenScore.transfer(ownerWallet, caller.getAddress(), value.negate(), "transfer".getBytes());
+        assertFailure(txHandler.getResult(transfer));
     }
 
+    @Order(11)
     @Test
     public void transfer_to_zero_address() throws IOException, ResultTimeoutException, TransactionFailureException {
-
+        if(!status.getOrDefault("add_and_approve_owner",false)){
+            add_and_approve(tokenScore,value);
+        }
+        if(!status.getOrDefault("mint",false)){
+            mint();
+        }
         BigInteger value = BigInteger.TEN.pow(tokenScore.decimals().intValue());
-
-        add_and_approve(tokenScore, value);
-
-        LOG.infoEntering("mint amount equals value");
-        Bytes mint = tokenScore.mint(ownerWallet, value);
-        assertSuccess(txHandler.getResult(mint));
 
         LOG.infoEntering("transfer fails when to zero address");
         Bytes transfer = tokenScore.transfer(ownerWallet, ZERO_ADDRESS, value.divide(BigInteger.TWO), "transfer".getBytes());
         assertFailure(txHandler.getResult(transfer));
     }
 
+    @Order(12)
     @Test
     public void check_transaction_transfer_more_than_balance() throws IOException, ResultTimeoutException, TransactionFailureException {
 
-        BigInteger value = BigInteger.TEN.pow(tokenScore.decimals().intValue());
-
-        add_and_approve(tokenScore, value);
-
-        LOG.infoEntering("mint amount value");
-        Bytes mint = tokenScore.mint(ownerWallet, value);
-        assertSuccess(txHandler.getResult(mint));
-
+        if(!status.getOrDefault("add_and_approve_owner",false)){
+            add_and_approve(tokenScore,value);
+        }
+        if(!status.getOrDefault("mint",false)){
+            mint();
+        }
         LOG.infoEntering("transfer more than balance - fails");
         Bytes transfer = tokenScore.transfer(ownerWallet, caller.getAddress(), value.add(BigInteger.TWO), "transfer".getBytes());
         assertFailure(txHandler.getResult(transfer));
     }
 
+    @Order(13)
     @Test
     public void transfer_to_self() throws IOException, ResultTimeoutException {
 
-        BigInteger value = BigInteger.TEN.pow(tokenScore.decimals().intValue());
-
-        add_and_approve(tokenScore, value);
-
-        LOG.infoEntering("mint amount value");
-        Bytes mint = tokenScore.mint(ownerWallet, value);
-        assertSuccess(txHandler.getResult(mint));
+        if(!status.getOrDefault("add_and_approve_owner",false)){
+            add_and_approve(tokenScore,value);
+        }
+        if(!status.getOrDefault("mint",false)){
+            mint();
+        }
 
         LOG.infoEntering("transfer self");
         Bytes transfer = tokenScore.transfer(ownerWallet, ownerWallet.getAddress(), value.divide(BigInteger.TWO), "transfer".getBytes());
@@ -332,19 +370,18 @@ public class StableCoinTest extends TestBase {
         assertEquals(value,tokenScore.totalSupply());
     }
 
+    @Order(14)
     @Test
     public void check_transaction_burning_more_than_balance() throws IOException, ResultTimeoutException, TransactionFailureException {
 
-        BigInteger value = BigInteger.TEN.pow(tokenScore.decimals().intValue());
-
-        add_and_approve(tokenScore, value);
-
-        LOG.infoEntering("mint amount value");
-        Bytes mint = tokenScore.mint(ownerWallet, value);
-        assertSuccess(txHandler.getResult(mint));
-
+        if(!status.getOrDefault("add_and_approve_owner",false)){
+            add_and_approve(tokenScore,value);
+        }
+        if(!status.getOrDefault("mint",false)){
+            mint();
+        }
         LOG.infoEntering("burn fails when value is more than balance");
-        Bytes burn = tokenScore.burn(caller, value.add(BigInteger.TWO));
+        Bytes burn = tokenScore.burn(ownerWallet, value.add(BigInteger.TWO));
         assertFailure(txHandler.getResult(burn));
     }
 
@@ -356,6 +393,19 @@ public class StableCoinTest extends TestBase {
         LOG.infoEntering("admin approve owner to mint value amount");
         Bytes approve = tokenScore.approve(ownerWallet, ownerWallet.getAddress(), value);
         assertSuccess(txHandler.getResult(approve));
+
+        status.put("add_and_approve_owner",true);
+    }
+
+    private void burn() throws IOException, ResultTimeoutException {
+        Bytes burn = tokenScore.burn(ownerWallet, tokenScore.balanceOf(ownerWallet.getAddress()));
+        assertSuccess(txHandler.getResult(burn));
+    }
+
+    private void mint() throws IOException, ResultTimeoutException {
+        Bytes mint = tokenScore.mint(ownerWallet, value);
+        assertSuccess(txHandler.getResult(mint));
+        status.put("mint",true);
     }
 
 }
