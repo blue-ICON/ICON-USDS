@@ -38,12 +38,13 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.security.SecureRandom;
+
 import java.util.HashMap;
 import java.util.Map;
 
 import static foundation.icon.test.Env.LOG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -51,7 +52,6 @@ public class StableCoinTest extends TestBase {
     private static final boolean DEBUG = true;
     private static final Address ZERO_ADDRESS = new Address("hx0000000000000000000000000000000000000000");
     private static TransactionHandler txHandler;
-    private static SecureRandom secureRandom;
     private static KeyWallet[] wallets;
     private static KeyWallet ownerWallet, caller;
     private static StableCoinScore tokenScore;
@@ -64,7 +64,6 @@ public class StableCoinTest extends TestBase {
         Env.Chain chain = Env.getDefaultChain();
         IconService iconService = new IconService(new HttpProvider(chain.getEndpointURL(3)));
         txHandler = new TransactionHandler(iconService, chain);
-        secureRandom = new SecureRandom();
 
         // init wallets
         wallets = new KeyWallet[2];
@@ -411,6 +410,35 @@ public class StableCoinTest extends TestBase {
         LOG.infoEntering("burn fails when value is more than balance");
         Bytes burn = tokenScore.burn(ownerWallet, value.add(BigInteger.TWO));
         assertFailure(txHandler.getResult(burn));
+    }
+
+    @Test
+    @Order(16)
+    public void check_fee_sharing() throws Exception {
+        if(!status.getOrDefault("add_and_approve_owner",false)){
+            add_and_approve(tokenScore,value);
+        }
+        if(!status.getOrDefault("mint",false)){
+            mint();
+        }
+
+        BigInteger depositAmount = ICX.multiply(BigInteger.valueOf(5000));
+
+        Bytes loadIcx = txHandler.transfer(ownerWallet.getAddress(), depositAmount);
+        assertSuccess(txHandler.getResult(loadIcx));
+
+        // deposit 5000 ICX to Score
+        Bytes depositICX = txHandler.depositICX(ownerWallet,tokenScore.getAddress(),depositAmount,null);
+        assertSuccess(txHandler.getResult(depositICX));
+
+        assertTrue(tokenScore.isWhitelisted(ownerWallet.getAddress()));
+
+        BigInteger balance_owner_before = txHandler.getBalance(ownerWallet.getAddress());
+        Bytes transfer = tokenScore.transfer(ownerWallet,caller.getAddress(),BigInteger.TEN,"transfer".getBytes());
+        assertSuccess(txHandler.getResult(transfer));
+
+        BigInteger balance_owner_after = txHandler.getBalance(ownerWallet.getAddress());
+        assertEquals(balance_owner_before,balance_owner_after);
     }
 
     private void add_and_approve(StableCoinScore tokenScore, BigInteger value) throws IOException, ResultTimeoutException {
