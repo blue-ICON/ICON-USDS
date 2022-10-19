@@ -3,3 +3,7 @@ stable-coin/build/
 JavaTest.json
 .idea
 Untitled.ipynb
+testinteg/build/
+
+# Package Files #
+*.jar

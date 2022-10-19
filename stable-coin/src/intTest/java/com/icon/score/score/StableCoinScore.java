@@ -4,7 +4,7 @@ package com.icon.score.score;
 import foundation.icon.icx.Wallet;
 import foundation.icon.icx.data.Address;
 import foundation.icon.icx.data.Bytes;
-import foundation.icon.icx.transport.jsonrpc.RpcArray;
+import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.icx.transport.jsonrpc.RpcValue;
@@ -14,9 +14,9 @@ import foundation.icon.test.TransactionHandler;
 import foundation.icon.test.score.Score;
 import score.annotation.Optional;
 
-import javax.naming.Context;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.List;
 
 import static foundation.icon.test.Env.LOG;
@@ -161,6 +161,79 @@ public class StableCoinScore extends Score {
 
     public BigInteger totalSupply() throws IOException {
         return call("totalSupply",null).asInteger();
+    }
+
+    public void approvalLog(TransactionResult result, Address from, Address to , BigInteger value) throws IOException{
+        TransactionResult.EventLog eventLog = findEventLog(result,getAddress(),
+                "Approval(Address,Address,int)");
+        if (eventLog !=null){
+            Address _from = eventLog.getIndexed().get(1).asAddress();
+            Address _to = eventLog.getIndexed().get(2).asAddress();
+            BigInteger _value = eventLog.getData().get(0).asInteger();
+            if (from.equals(_from) && to.equals(_to) && value.equals(_value)){
+                return;
+            }
+        }
+        throw new IOException("Failed to get approved.");
+    }
+
+    public void mintLog(TransactionResult result, Address to , BigInteger value)throws IOException{
+        TransactionResult.EventLog eventLog = findEventLog(result,getAddress(),
+                "Mint(Address,int)");
+        if (eventLog !=null){
+            Address _to = eventLog.getIndexed().get(1).asAddress();
+            BigInteger _value = eventLog.getData().get(0).asInteger();
+            if (to.equals(_to) && value.equals(_value)){
+                return;
+            }
+        }
+        throw new IOException("Failed to mint tokens.");
+    }
+    public void whiteListLog(TransactionResult result, Address to, byte[] data)throws IOException{
+        TransactionResult.EventLog eventLog = findEventLog(result,getAddress(),
+                "WhitelistWallet(Address,bytes)");
+        if (eventLog !=null){
+            Address _to = eventLog.getIndexed().get(1).asAddress();
+            byte[] _bytes = eventLog.getIndexed().get(2).asByteArray();
+            if (to.equals(_to) && Arrays.equals(data, _bytes)){
+                return;
+            }
+        }
+        throw new IOException("Failed to whitelist wallet.");
+    }
+
+    public void transferLog(TransactionResult result,Address from, Address to, BigInteger value, byte[] data)throws IOException{
+        TransactionResult.EventLog eventLog = findEventLog(result,getAddress(),
+                "Transfer(Address,Address,int,bytes)");
+        if (eventLog !=null){
+            Address _from = eventLog.getIndexed().get(1).asAddress();
+            Address _to = eventLog.getIndexed().get(2).asAddress();
+            BigInteger _value = eventLog.getIndexed().get(3).asInteger();
+            byte[] _bytes = eventLog.getData().get(0).asByteArray();
+
+            if (from.equals(_from) && to.equals(_to) && value.equals(_value) && Arrays.equals(data, _bytes) ){
+                return;
+            }
+        }
+        throw new IOException("Failed to transfer tokens.");
+    }
+
+    public void burnLog(TransactionResult result,Address from,BigInteger value)throws IOException{
+        TransactionResult.EventLog eventLog = findEventLog(result,getAddress(),
+                "Burn(Address,int)");
+        if (eventLog !=null){
+            Address _from = eventLog.getIndexed().get(1).asAddress();
+            BigInteger _value = eventLog.getData().get(0).asInteger();
+
+            if (from.equals(_from) && value.equals(_value) ){
+                return;
+            }
+        }
+        throw new IOException("Failed to burn tokens.");
+    }
+
+    public void depositForFeeSharing(){
+
     }
 }
 

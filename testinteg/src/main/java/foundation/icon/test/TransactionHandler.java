@@ -198,4 +198,20 @@ public class TransactionHandler {
     public ConfirmedTransaction getTransaction(Bytes txHash) throws IOException {
         return iconService.getTransaction(txHash).execute();
     }
+
+    public Bytes depositICX(Wallet owner, Address to, BigInteger amount, BigInteger steps) throws IOException {
+        Transaction transaction = TransactionBuilder.newBuilder()
+                .nid(getNetworkId())
+                .from(owner.getAddress())
+                .to(to)
+                .value(amount)
+                .deposit().add()
+                .build();
+
+        if (steps == null) {
+            steps = estimateStep(transaction).add(BigInteger.valueOf(10000));
+        }
+        SignedTransaction signedTransaction = new SignedTransaction(transaction, owner, steps);
+        return iconService.sendTransaction(signedTransaction).execute();
+    }
 }
