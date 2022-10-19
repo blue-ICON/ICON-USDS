@@ -93,20 +93,6 @@ public abstract class AbstractStableCoin implements IRC2Base {
         return false;
     }
 
-//    protected void setFeeSharingPercentage(){
-//        if (!_whitelist.at(Context.getCaller()).get("free_tx_start_height").equals(BigInteger.ZERO)){
-//            _whitelist.at(Context.getCaller()).set("free_tx_start_height",BigInteger.valueOf(Context.getBlockHeight()));
-//            _whitelist.at(Context.getCaller()).set("free_tx_count_since_start",BigInteger.ONE);
-//            Context.setFeeSharingProportion(100);
-//
-//        } else if (_whitelist.at(Context.getCaller()).get("free_tx_count_since_start").add(BigInteger.ONE).compareTo
-//                (freeDailyTxLimit.get())<=0) {
-//            BigInteger newVal = _whitelist.at(Context.getCaller()).get("free_tx_count_since_start").add(BigInteger.ONE);
-//            _whitelist.at(Context.getCaller()).set("free_tx_count_since_start",newVal);
-//            Context.setFeeSharingProportion(100);
-//        }
-//    }
-
     protected void setFeeSharingPercentage() {
         Address user = Context.getCaller();
         BigInteger currentBlockHeight = BigInteger.valueOf(getBlockHeight());
