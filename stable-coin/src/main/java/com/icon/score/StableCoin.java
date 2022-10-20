@@ -140,7 +140,7 @@ public class StableCoin extends AbstractStableCoin {
 
         DictDB<String, BigInteger> userFeeSharing = _whitelist.at(_owner);
         BigInteger currentBlockHeight = BigInteger.valueOf(getBlockHeight());
-        if (userFeeSharing.get(START_HEIGHT)!=null) {
+        if (userFeeSharing.get(START_HEIGHT) != null) {
             if (userFeeSharing.get(START_HEIGHT).add(TERM_LENGTH).compareTo(currentBlockHeight) < 0) {
                 return freeDailyTxLimit.get();
             } else {
@@ -156,7 +156,7 @@ public class StableCoin extends AbstractStableCoin {
      */
     @External(readonly = true)
     public boolean isWhitelisted(Address _owner) {
-        return _whitelist.at(_owner).get("free_tx_start_height") != null;
+        return _whitelist.at(_owner).get(START_HEIGHT) != null;
     }
 
 
@@ -171,10 +171,6 @@ public class StableCoin extends AbstractStableCoin {
     public void transfer(Address _to, BigInteger _value, @Optional byte[] _data) {
 
         setFeeSharingPercentage();
-
-        if (_data == null) {
-            _data = "None".getBytes();
-        }
         _transfer(Context.getCaller(), _to, _value, _data);
     }
 
@@ -182,6 +178,7 @@ public class StableCoin extends AbstractStableCoin {
     /**
      * Changes daily free transactions limit for whitelisted users
      * Only admin can call this method
+     *
      * @param _new_limit
      */
     @External

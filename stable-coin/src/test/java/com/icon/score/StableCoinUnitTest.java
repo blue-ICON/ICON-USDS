@@ -8,7 +8,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import org.junit.jupiter.api.function.Executable;
+
 import java.math.BigInteger;
+
 import com.iconloop.score.test.Account;
 import com.iconloop.score.test.ServiceManager;
 import org.mockito.MockedStatic;
@@ -39,7 +41,7 @@ public class StableCoinUnitTest extends TestBase {
     static MockedStatic<Context> contextMock;
 
     @BeforeAll
-    protected static void init(){
+    protected static void init() {
         contextMock = Mockito.mockStatic(Context.class, Mockito.CALLS_REAL_METHODS);
     }
 
@@ -51,7 +53,7 @@ public class StableCoinUnitTest extends TestBase {
         Cathy = sm.createAccount();
 
         StableCoin instance = (StableCoin) tokenScore.getInstance();
-        scoreSpy= spy(instance);
+        scoreSpy = spy(instance);
         tokenScore.setInstance(scoreSpy);
     }
 
@@ -92,8 +94,8 @@ public class StableCoinUnitTest extends TestBase {
         tokenScore.invoke(owner, "addIssuer", Bob.getAddress());
 
         //verify the allowance
-        assertEquals(BigInteger.ZERO,tokenScore.call("issuerAllowance",Alice.getAddress()));
-        assertEquals(BigInteger.ZERO,tokenScore.call("issuerAllowance",Bob.getAddress()));
+        assertEquals(BigInteger.ZERO, tokenScore.call("issuerAllowance", Alice.getAddress()));
+        assertEquals(BigInteger.ZERO, tokenScore.call("issuerAllowance", Bob.getAddress()));
 
         //get issuers
         Address[] issuers = (Address[]) tokenScore.call("getIssuers");
@@ -125,7 +127,7 @@ public class StableCoinUnitTest extends TestBase {
     }
 
     @Test
-    void add_more_than_two_issuers(){
+    void add_more_than_two_issuers() {
         tokenScore.invoke(owner, "addIssuer", Alice.getAddress());
         tokenScore.invoke(owner, "addIssuer", Bob.getAddress());
         Executable thirdIssuer = () -> tokenScore.invoke(owner, "addIssuer", Cathy.getAddress());
@@ -159,22 +161,22 @@ public class StableCoinUnitTest extends TestBase {
         expectErrorMessage(NotByAdmin, expectedErrorMessage);
 
         //change limit to zero
-        Executable zeroLimit = () -> tokenScore.invoke(Alice,"changeFreeDailyTxLimit",BigInteger.ONE.negate());
+        Executable zeroLimit = () -> tokenScore.invoke(Alice, "changeFreeDailyTxLimit", BigInteger.ONE.negate());
         expectedErrorMessage = "Free daily transaction limit cannot be under 0.";
-        expectErrorMessage(zeroLimit,expectedErrorMessage);
+        expectErrorMessage(zeroLimit, expectedErrorMessage);
 
         //change to 2
-        tokenScore.invoke(owner,"changeFreeDailyTxLimit",BigInteger.TWO);
+        tokenScore.invoke(owner, "changeFreeDailyTxLimit", BigInteger.TWO);
         assertEquals(BigInteger.TWO, tokenScore.call("freeDailyTxLimit"));
     }
 
     @Test
     void approve_negative_amount() {
         //add issuer
-        tokenScore.invoke(owner,"addIssuer",Alice.getAddress());
+        tokenScore.invoke(owner, "addIssuer", Alice.getAddress());
 
         //approve negative amount
-        tokenScore.invoke(owner,"approve",Alice.getAddress(),BigInteger.valueOf(10).negate());
+        tokenScore.invoke(owner, "approve", Alice.getAddress(), BigInteger.valueOf(10).negate());
 
         //try to mint
         Executable allowanceExceed = () -> tokenScore.invoke(Alice, "mint", BigInteger.valueOf(10));
@@ -238,57 +240,57 @@ public class StableCoinUnitTest extends TestBase {
         //get Issuer Allowance
         assertEquals(value, tokenScore.call("issuerAllowance", owner.getAddress()));
 
-        BigInteger balance_before_mint = (BigInteger)tokenScore.call("balanceOf", owner.getAddress());
-        BigInteger total_supply_before_mint = (BigInteger)tokenScore.call("totalSupply");
+        BigInteger balance_before_mint = (BigInteger) tokenScore.call("balanceOf", owner.getAddress());
+        BigInteger total_supply_before_mint = (BigInteger) tokenScore.call("totalSupply");
 
         //mint
         tokenScore.invoke(owner, "mint", value);
 
         //check balance
-        BigInteger balance_after_mint = (BigInteger)tokenScore.call("balanceOf", owner.getAddress());
-        assertEquals(balance_before_mint.add(value),balance_after_mint);
+        BigInteger balance_after_mint = (BigInteger) tokenScore.call("balanceOf", owner.getAddress());
+        assertEquals(balance_before_mint.add(value), balance_after_mint);
 
         //check totalSupply
-        BigInteger total_supply_after_mint = (BigInteger)tokenScore.call("totalSupply");
-        assertEquals(total_supply_before_mint.add(value),total_supply_after_mint);
+        BigInteger total_supply_after_mint = (BigInteger) tokenScore.call("totalSupply");
+        assertEquals(total_supply_before_mint.add(value), total_supply_after_mint);
 
         //check if whitelisted
         assertEquals(true, tokenScore.call("isWhitelisted", owner.getAddress()));
 
         // event logs verification
-        verify(scoreSpy).Approval(owner.getAddress(),owner.getAddress(),value);
-        verify(scoreSpy).Transfer(EOA_ZERO,owner.getAddress(),value,"mint".getBytes());
-        verify(scoreSpy).Mint(owner.getAddress(),value);
-        verify(scoreSpy).WhitelistWallet(owner.getAddress(),"whitelist on mint".getBytes());
+        verify(scoreSpy).Approval(owner.getAddress(), owner.getAddress(), value);
+        verify(scoreSpy).Transfer(EOA_ZERO, owner.getAddress(), value, "mint".getBytes());
+        verify(scoreSpy).Mint(owner.getAddress(), value);
+        verify(scoreSpy).WhitelistWallet(owner.getAddress(), "whitelist on mint".getBytes());
     }
 
     @Test
-    void mint_by_contract(){
+    void mint_by_contract() {
         BigInteger value = BigInteger.TEN.pow(decimals.intValue());
 
         tokenScore.invoke(owner, "addIssuer", scoreAccount.getAddress());
         tokenScore.invoke(owner, "approve", scoreAccount.getAddress(), value);
 
-        BigInteger balance_before= (BigInteger) tokenScore.call("balanceOf",scoreAccount.getAddress());
-        BigInteger total_supply_before= (BigInteger) tokenScore.call("totalSupply");
+        BigInteger balance_before = (BigInteger) tokenScore.call("balanceOf", scoreAccount.getAddress());
+        BigInteger total_supply_before = (BigInteger) tokenScore.call("totalSupply");
 
-        tokenScore.invoke(scoreAccount,"mint",value);
-        System.out.println(tokenScore.call("balanceOf",scoreAccount.getAddress()));
+        tokenScore.invoke(scoreAccount, "mint", value);
+        System.out.println(tokenScore.call("balanceOf", scoreAccount.getAddress()));
 
-        BigInteger balance_after= (BigInteger) tokenScore.call("balanceOf",scoreAccount.getAddress());
-        BigInteger total_supply_after= (BigInteger) tokenScore.call("totalSupply");
+        BigInteger balance_after = (BigInteger) tokenScore.call("balanceOf", scoreAccount.getAddress());
+        BigInteger total_supply_after = (BigInteger) tokenScore.call("totalSupply");
 
-        assertEquals(balance_before.add(value),balance_after);
-        assertEquals(total_supply_before.add(value),total_supply_after);
+        assertEquals(balance_before.add(value), balance_after);
+        assertEquals(total_supply_before.add(value), total_supply_after);
 
-        Executable allowanceMintExceed = () ->  tokenScore.invoke(scoreAccount,"mint",value);
+        Executable allowanceMintExceed = () -> tokenScore.invoke(scoreAccount, "mint", value);
         String expectedErrorMessage = "Allowance amount to mint exceed";
 
-        expectErrorMessage(allowanceMintExceed,expectedErrorMessage);
+        expectErrorMessage(allowanceMintExceed, expectedErrorMessage);
     }
 
     @Test
-    void whitelisted_account_mints_again(){
+    void whitelisted_account_mints_again() {
         BigInteger value = BigInteger.TEN.pow(decimals.intValue());
 
         // owner mints
@@ -299,26 +301,26 @@ public class StableCoinUnitTest extends TestBase {
         //check if whitelisted
         assertEquals(true, tokenScore.call("isWhitelisted", owner.getAddress()));
 
-        BigInteger balance_before_mint = (BigInteger)tokenScore.call("balanceOf", owner.getAddress());
-        BigInteger total_supply_before_mint = (BigInteger)tokenScore.call("totalSupply");
+        BigInteger balance_before_mint = (BigInteger) tokenScore.call("balanceOf", owner.getAddress());
+        BigInteger total_supply_before_mint = (BigInteger) tokenScore.call("totalSupply");
 
         // owner mints again
         tokenScore.invoke(owner, "mint", value);
 
         //check balance
-        BigInteger balance_after_mint = (BigInteger)tokenScore.call("balanceOf", owner.getAddress());
-        assertEquals(balance_before_mint.add(value),balance_after_mint);
+        BigInteger balance_after_mint = (BigInteger) tokenScore.call("balanceOf", owner.getAddress());
+        assertEquals(balance_before_mint.add(value), balance_after_mint);
 
         //check totalSupply
-        BigInteger total_supply_after_mint = (BigInteger)tokenScore.call("totalSupply");
-        assertEquals(total_supply_before_mint.add(value),total_supply_after_mint);
+        BigInteger total_supply_after_mint = (BigInteger) tokenScore.call("totalSupply");
+        assertEquals(total_supply_before_mint.add(value), total_supply_after_mint);
 
-        verify(scoreSpy,times(2)).Approval(owner.getAddress(),owner.getAddress(),value);
-        verify(scoreSpy,times(2)).Transfer(EOA_ZERO,owner.getAddress(),value,"mint".getBytes());
-        verify(scoreSpy,times(2)).Mint(owner.getAddress(),value);
+        verify(scoreSpy, times(2)).Approval(owner.getAddress(), owner.getAddress(), value);
+        verify(scoreSpy, times(2)).Transfer(EOA_ZERO, owner.getAddress(), value, "mint".getBytes());
+        verify(scoreSpy, times(2)).Mint(owner.getAddress(), value);
 
         // account is whitelisted only once
-        verify(scoreSpy).WhitelistWallet(owner.getAddress(),"whitelist on mint".getBytes());
+        verify(scoreSpy).WhitelistWallet(owner.getAddress(), "whitelist on mint".getBytes());
 
     }
 
@@ -362,46 +364,46 @@ public class StableCoinUnitTest extends TestBase {
         BigInteger value = BigInteger.TEN.pow(decimals.intValue());
         mint_flow();
 
-        BigInteger balance_before_burn = (BigInteger) tokenScore.call("balanceOf",owner.getAddress());
+        BigInteger balance_before_burn = (BigInteger) tokenScore.call("balanceOf", owner.getAddress());
         BigInteger totalSupply_before_burn = (BigInteger) tokenScore.call("totalSupply");
 
         //burn
         tokenScore.invoke(owner, "burn", value);
 
         // check balance
-        BigInteger balance_after_burn = (BigInteger) tokenScore.call("balanceOf",owner.getAddress());
-        assertEquals(balance_before_burn.subtract(value),balance_after_burn);
+        BigInteger balance_after_burn = (BigInteger) tokenScore.call("balanceOf", owner.getAddress());
+        assertEquals(balance_before_burn.subtract(value), balance_after_burn);
 
         //check totalSupply
         BigInteger totalSupply_after_burn = (BigInteger) tokenScore.call("totalSupply");
-        assertEquals(totalSupply_before_burn.subtract(value),totalSupply_after_burn);
+        assertEquals(totalSupply_before_burn.subtract(value), totalSupply_after_burn);
 
-        verify(scoreSpy).Transfer(owner.getAddress(),EOA_ZERO,value,"burn".getBytes());
-        verify(scoreSpy).Burn(owner.getAddress(),value);
+        verify(scoreSpy).Transfer(owner.getAddress(), EOA_ZERO, value, "burn".getBytes());
+        verify(scoreSpy).Burn(owner.getAddress(), value);
     }
 
     @Test
-    void burn_flow_not_by_owner(){
+    void burn_flow_not_by_owner() {
         BigInteger burn_value = BigInteger.valueOf(5).pow(decimals.intValue());
 
         mint_flow();
-        tokenScore.invoke(owner,"transfer",Alice.getAddress(),burn_value,"transfer".getBytes());
+        tokenScore.invoke(owner, "transfer", Alice.getAddress(), burn_value, "transfer".getBytes());
 
-        BigInteger balance_before_burn = (BigInteger) tokenScore.call("balanceOf",Alice.getAddress());
+        BigInteger balance_before_burn = (BigInteger) tokenScore.call("balanceOf", Alice.getAddress());
         BigInteger totalSupply_before_burn = (BigInteger) tokenScore.call("totalSupply");
 
-        assertEquals(balance_before_burn,burn_value);
+        assertEquals(balance_before_burn, burn_value);
 
-        tokenScore.invoke(Alice,"burn",burn_value);
-        BigInteger balance_after_burn = (BigInteger) tokenScore.call("balanceOf",Alice.getAddress());
+        tokenScore.invoke(Alice, "burn", burn_value);
+        BigInteger balance_after_burn = (BigInteger) tokenScore.call("balanceOf", Alice.getAddress());
         BigInteger totalSupply_after_burn = (BigInteger) tokenScore.call("totalSupply");
 
-        assertEquals(balance_before_burn.subtract(burn_value),balance_after_burn);
-        assertEquals(totalSupply_before_burn.subtract(burn_value),totalSupply_after_burn);
+        assertEquals(balance_before_burn.subtract(burn_value), balance_after_burn);
+        assertEquals(totalSupply_before_burn.subtract(burn_value), totalSupply_after_burn);
 
         // event log verification
-        verify(scoreSpy).Transfer(Alice.getAddress(),EOA_ZERO,burn_value,"burn".getBytes());
-        verify(scoreSpy).Burn(Alice.getAddress(),burn_value);
+        verify(scoreSpy).Transfer(Alice.getAddress(), EOA_ZERO, burn_value, "burn".getBytes());
+        verify(scoreSpy).Burn(Alice.getAddress(), burn_value);
 
     }
 
@@ -455,9 +457,9 @@ public class StableCoinUnitTest extends TestBase {
         mint_flow();
         BigInteger value = BigInteger.TEN.pow(decimals.intValue());
         contextMock.when(
-                contractCall(scoreAccount.getAddress(),owner.getAddress(),value,"transfer".getBytes())).
+                        contractCall(scoreAccount.getAddress(), owner.getAddress(), value, "transfer".getBytes())).
                 thenReturn(BigInteger.ZERO);
-        tokenScore.invoke(owner, "transfer", scoreAccount.getAddress(), value,"transfer".getBytes());
+        tokenScore.invoke(owner, "transfer", scoreAccount.getAddress(), value, "transfer".getBytes());
     }
 
     @Test
@@ -472,57 +474,57 @@ public class StableCoinUnitTest extends TestBase {
         BigInteger ownerBalBeforeTransfer = (BigInteger) tokenScore.call("balanceOf", owner.getAddress());
         BigInteger AliceBalBeforeTransfer = (BigInteger) tokenScore.call("balanceOf", Alice.getAddress());
 
-        BigInteger transferValue =BigInteger.valueOf(5).pow(decimals.intValue());
+        BigInteger transferValue = BigInteger.valueOf(5).pow(decimals.intValue());
         //transfer
         tokenScore.invoke(owner, "transfer", Alice.getAddress(), transferValue, "transfer".getBytes());
 
         //check whether Alice is whitelisted or not
-        assertEquals(false,tokenScore.call("isWhitelisted",Alice.getAddress()));
+        assertEquals(false, tokenScore.call("isWhitelisted", Alice.getAddress()));
 
         BigInteger ownerBalAfterTransfer = (BigInteger) tokenScore.call("balanceOf", owner.getAddress());
         BigInteger AliceBalAfterTransfer = (BigInteger) tokenScore.call("balanceOf", Alice.getAddress());
 
         //balance after transfer
-        assertEquals(ownerBalBeforeTransfer.subtract(transferValue),ownerBalAfterTransfer);
-        assertEquals(AliceBalBeforeTransfer.add(transferValue),AliceBalAfterTransfer);
+        assertEquals(ownerBalBeforeTransfer.subtract(transferValue), ownerBalAfterTransfer);
+        assertEquals(AliceBalBeforeTransfer.add(transferValue), AliceBalAfterTransfer);
 
         // transfer self
         tokenScore.invoke(Alice, "transfer", Alice.getAddress(), transferValue, "self transfer".getBytes());
         BigInteger AliceBalAfterSelfTransfer = (BigInteger) tokenScore.call("balanceOf", Alice.getAddress());
 
-        assertEquals(AliceBalAfterTransfer,AliceBalAfterSelfTransfer);
+        assertEquals(AliceBalAfterTransfer, AliceBalAfterSelfTransfer);
         assertEquals(value, tokenScore.call("totalSupply"));
 
-        verify(scoreSpy).Transfer(owner.getAddress(),Alice.getAddress(),transferValue,"transfer".getBytes());
-        verify(scoreSpy).Transfer(Alice.getAddress(),Alice.getAddress(),transferValue,"self transfer".getBytes());
+        verify(scoreSpy).Transfer(owner.getAddress(), Alice.getAddress(), transferValue, "transfer".getBytes());
+        verify(scoreSpy).Transfer(Alice.getAddress(), Alice.getAddress(), transferValue, "self transfer".getBytes());
     }
 
     @Test
-    void check_free_transactions(){
+    void check_free_transactions() {
 
         BigInteger value = BigInteger.TEN.pow(decimals.intValue());
-        tokenScore.invoke(owner,"changeFreeDailyTxLimit",BigInteger.valueOf(3));
+        tokenScore.invoke(owner, "changeFreeDailyTxLimit", BigInteger.valueOf(3));
 
         // free transaction before whitelisted
-        BigInteger free_tx_owner = (BigInteger) tokenScore.call("remainingFreeTxThisTerm",Alice.getAddress());
-        assertEquals(BigInteger.ZERO,free_tx_owner);
+        BigInteger free_tx_owner = (BigInteger) tokenScore.call("remainingFreeTxThisTerm", Alice.getAddress());
+        assertEquals(BigInteger.ZERO, free_tx_owner);
 
         // Alice mints
         tokenScore.invoke(owner, "addIssuer", Alice.getAddress());
         tokenScore.invoke(owner, "approve", Alice.getAddress(), value);
         tokenScore.invoke(Alice, "mint", value);
 
-        free_tx_owner = (BigInteger) tokenScore.call("remainingFreeTxThisTerm",Alice.getAddress());
-        assertEquals(BigInteger.TWO,free_tx_owner);
+        free_tx_owner = (BigInteger) tokenScore.call("remainingFreeTxThisTerm", Alice.getAddress());
+        assertEquals(BigInteger.TWO, free_tx_owner);
 
         // Alice does 2 more transactions
-        tokenScore.invoke(Alice,"transfer",owner.getAddress(),BigInteger.ONE,new byte[0]);
-        free_tx_owner = (BigInteger) tokenScore.call("remainingFreeTxThisTerm",Alice.getAddress());
-        assertEquals(BigInteger.ONE,free_tx_owner);
+        tokenScore.invoke(Alice, "transfer", owner.getAddress(), BigInteger.ONE, new byte[0]);
+        free_tx_owner = (BigInteger) tokenScore.call("remainingFreeTxThisTerm", Alice.getAddress());
+        assertEquals(BigInteger.ONE, free_tx_owner);
 
-        tokenScore.invoke(Alice,"transfer",owner.getAddress(),BigInteger.ONE,new byte[0]);
-        free_tx_owner = (BigInteger) tokenScore.call("remainingFreeTxThisTerm",Alice.getAddress());
-        assertEquals(BigInteger.ZERO,free_tx_owner);
+        tokenScore.invoke(Alice, "transfer", owner.getAddress(), BigInteger.ONE, new byte[0]);
+        free_tx_owner = (BigInteger) tokenScore.call("remainingFreeTxThisTerm", Alice.getAddress());
+        assertEquals(BigInteger.ZERO, free_tx_owner);
     }
 
     private void expectErrorMessage(Executable contractCall, String errorMessage) {
@@ -531,7 +533,7 @@ public class StableCoinUnitTest extends TestBase {
     }
 
     public MockedStatic.Verification contractCall(Address to, Address from, BigInteger value, byte[] data) {
-        return () -> Context.call(to,"tokenFallback", from,value,data);
+        return () -> Context.call(to, "tokenFallback", from, value, data);
     }
 
 }
