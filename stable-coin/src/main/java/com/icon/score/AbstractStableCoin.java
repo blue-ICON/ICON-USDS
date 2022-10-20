@@ -17,7 +17,8 @@ import static score.Context.require;
 public abstract class AbstractStableCoin implements IRC2Base {
     protected final String TAG = "StableCoin";
     protected final BigInteger TERM_LENGTH = BigInteger.valueOf(43120);
-    protected final Address EOA_ZERO = Address.fromString("hx0000000000000000000000000000000000000000");;
+    protected final Address EOA_ZERO = new Address(new byte[21]);
+
     protected final VarDB<String> name = Context.newVarDB("_name", String.class);
     protected final VarDB<String> symbol = Context.newVarDB("_symbol", String.class);
     protected final VarDB<BigInteger> decimals = Context.newVarDB("decimals", BigInteger.class);
@@ -55,21 +56,22 @@ public abstract class AbstractStableCoin implements IRC2Base {
     public void WhitelistWallet(Address _to, byte[] _data) {
     }
 
-    public AbstractStableCoin() {
-    }
+    public AbstractStableCoin() {}
 
     protected void onlyAdmin(String msg) {
         require(Context.getCaller().equals(admin.get()), msg);
     }
 
     protected boolean isIssuer(Address issuer) {
-        for (int i = 0; i < issuers.size(); i++) {
+        int size = issuers.size();
+        for (int i = 0; i < size; i++) {
             if (issuer.equals(issuers.get(i))) {
                 return true;
             }
         }
         return false;
     }
+
 
     protected void setFeeSharingPercentage() {
         Address user = Context.getCaller();
@@ -103,13 +105,17 @@ public abstract class AbstractStableCoin implements IRC2Base {
      */
     protected void _transfer(Address _from, Address _to, BigInteger _value, byte[] _data) {
 
-        require(!_to.equals(EOA_ZERO), "Cannot transfer to zero address");
         require(_value.compareTo(BigInteger.ZERO) > 0, "Cannot transfer zero or less");
-        require(_balances.getOrDefault(_from, BigInteger.ZERO).compareTo(_value) >= 0, "Insufficient Balance");
+        require(balanceOf(_from).compareTo(_value) >= 0, "Insufficient Balance");
+        require(!_to.equals(EOA_ZERO), "Cannot transfer to zero address");
         require(!_paused.get(), "Cannot transfer when paused");
 
-        _balances.set(_from, _balances.getOrDefault(_from, BigInteger.ZERO).subtract(_value));
-        _balances.set(_to, _balances.getOrDefault(_to, BigInteger.ZERO).add(_value));
+        _balances.set(_from, balanceOf(_from).subtract(_value));
+        _balances.set(_to, balanceOf(_to).add(_value));
+
+        if (_data == null) {
+            _data = "None".getBytes();
+        }
 
         if (_to.isContract()) {
             Context.call(_to, "tokenFallback", _from, _value, _data);
@@ -126,14 +132,15 @@ public abstract class AbstractStableCoin implements IRC2Base {
      * @param _value Number of tokens to be minted at the account.
      */
     protected void _mint(Address _to, BigInteger _value) {
+        Address issuer = Context.getCaller();
         require(!_to.equals(EOA_ZERO), "Cannot mint to zero address");
         require(_value.compareTo(BigInteger.ZERO) > 0, "Amount to mint should be greater than zero");
-        require(isIssuer(Context.getCaller()), "Only issuers can mint");
+        require(isIssuer(issuer), "Only issuers can mint");
         require(!_paused.get(), "Cannot mint when paused");
 
-        BigInteger value = _allowances.getOrDefault(Context.getCaller(), BigInteger.ZERO).subtract(_value);
-        _allowances.set(Context.getCaller(), value);
-        require(_allowances.getOrDefault(Context.getCaller(), BigInteger.ZERO).compareTo(BigInteger.ZERO) >= 0,
+        BigInteger value = _allowances.getOrDefault(issuer, BigInteger.ZERO).subtract(_value);
+        _allowances.set(issuer, value);
+        require(_allowances.getOrDefault(issuer, BigInteger.ZERO).compareTo(BigInteger.ZERO) >= 0,
                 "Allowance amount to mint exceed");
 
         _whitelistWallet(_to, "whitelist on mint".getBytes());

@@ -24,7 +24,7 @@ public class StableCoinUTest extends TestBase {
     private static final String symbol = "STO";
     private static final BigInteger decimals = BigInteger.valueOf(18);
     private static final BigInteger nIssuers = BigInteger.valueOf(2);
-    protected final Address EOA_ZERO = Address.fromString("hx0000000000000000000000000000000000000000");
+    protected final Address EOA_ZERO = new Address(new byte[21]);
 
     private static Account Alice, Bob, C;
 

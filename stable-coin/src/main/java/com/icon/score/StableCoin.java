@@ -2,11 +2,13 @@ package com.icon.score;
 
 import score.Address;
 import score.Context;
+import score.DictDB;
 import score.annotation.External;
 import score.annotation.Optional;
 
 import java.math.BigInteger;
 
+import static score.Context.getBlockHeight;
 import static score.Context.require;
 
 public class StableCoin extends AbstractStableCoin {
@@ -97,8 +99,8 @@ public class StableCoin extends AbstractStableCoin {
     public Address[] getIssuers() {
         int len = issuers.size();
         Address[] issuersList = new Address[len];
-        for (int i = 0; i < issuers.size(); i++) {
-            issuersList[i] = (issuers.get(i));
+        for (int i = 0; i < len; i++) {
+            issuersList[i] = issuers.get(i);
         }
         return issuersList;
     }
@@ -136,12 +138,13 @@ public class StableCoin extends AbstractStableCoin {
     @External(readonly = true)
     public BigInteger remainingFreeTxThisTerm(Address _owner) {
 
-        if (_whitelist.at(_owner).get(START_HEIGHT)!=null) {
-            if (_whitelist.at(_owner).get(START_HEIGHT).add(TERM_LENGTH).compareTo(BigInteger.valueOf
-                    (Context.getBlockHeight())) < 0) {
+        DictDB<String, BigInteger> userFeeSharing = _whitelist.at(_owner);
+        BigInteger currentBlockHeight = BigInteger.valueOf(getBlockHeight());
+        if (userFeeSharing.get(START_HEIGHT)!=null) {
+            if (userFeeSharing.get(START_HEIGHT).add(TERM_LENGTH).compareTo(currentBlockHeight) < 0) {
                 return freeDailyTxLimit.get();
             } else {
-                return freeDailyTxLimit.get().subtract(_whitelist.at(_owner).get(TXN_COUNT));
+                return freeDailyTxLimit.get().subtract(userFeeSharing.get(TXN_COUNT));
             }
         }
         return BigInteger.ZERO;
@@ -175,12 +178,13 @@ public class StableCoin extends AbstractStableCoin {
         _transfer(Context.getCaller(), _to, _value, _data);
     }
 
-    @External
+
     /**
      * Changes daily free transactions limit for whitelisted users
      * Only admin can call this method
      * @param _new_limit
      */
+    @External
     public void changeFreeDailyTxLimit(BigInteger _new_limit) {
 
         require(_new_limit.compareTo(BigInteger.ZERO) >= 0,
@@ -226,7 +230,7 @@ public class StableCoin extends AbstractStableCoin {
                 }
             }
         }
-        _allowances.set(_issuer, BigInteger.ZERO);
+        _allowances.set(_issuer, null);
     }
 
 
