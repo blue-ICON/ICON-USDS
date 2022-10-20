@@ -1,4 +1,4 @@
-version = '0.9.1'
+version = '0.1.0'
 
 // for integration tests
 sourceSets {
@@ -54,7 +54,7 @@ deployJar {
         arg('_name', 'Stable Token')
         arg('_symbol', 'STO')
         arg('_decimals', '18')
-        arg('_admin', 'hxf218cb3675aca9c78d82e35482a527be285db389')
+        arg('_admin', rootProject.findProperty("admin-address") as String)
         arg('_nIssuers', '2')
     }
 }
