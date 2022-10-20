@@ -103,6 +103,8 @@ public class StableCoinUnitTest extends TestBase {
         assertEquals(Alice.getAddress(), issuers[0]);
         assertEquals(Bob.getAddress(), issuers[1]);
 
+        tokenScore.invoke(owner,"approve",Alice.getAddress(),BigInteger.ONE);
+
         //add already issued issuers
         Executable alreadyIssued = () -> tokenScore.invoke(owner, "addIssuer", Alice.getAddress());
         expectedErrorMessage = Alice.getAddress() + " is already an issuer";

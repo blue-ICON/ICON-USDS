@@ -119,7 +119,7 @@ public class StableCoinIntTest extends TestBase {
 
     @Order(3)
     @Test
-    public void remove_issuer_and_nonexistent_issuer() throws IOException, ResultTimeoutException, TransactionFailureException {
+    public void remove_issuer_and_nonexistent_issuer() throws IOException, ResultTimeoutException {
         if (!status.getOrDefault("add_and_approve_owner", false)) {
             add_and_approve(tokenScore, value);
         }
