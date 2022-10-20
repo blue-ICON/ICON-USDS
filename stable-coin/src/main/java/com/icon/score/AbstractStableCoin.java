@@ -10,7 +10,6 @@ import java.math.BigInteger;
 import score.DictDB;
 import score.VarDB;
 import score.annotation.EventLog;
-import score.annotation.Optional;
 
 import static score.Context.getBlockHeight;
 import static score.Context.require;
@@ -18,20 +17,19 @@ import static score.Context.require;
 public abstract class AbstractStableCoin implements IRC2Base {
     protected final String TAG = "StableCoin";
     protected final BigInteger TERM_LENGTH = BigInteger.valueOf(43120);
-    protected final Address EOA_ZERO = Address.fromString("hx0000000000000000000000000000000000000000");
-
-    protected final VarDB<String> name = Context.newVarDB("name", String.class);
-    protected final VarDB<String> symbol = Context.newVarDB("symbol", String.class);
+    protected final Address EOA_ZERO = Address.fromString("hx0000000000000000000000000000000000000000");;
+    protected final VarDB<String> name = Context.newVarDB("_name", String.class);
+    protected final VarDB<String> symbol = Context.newVarDB("_symbol", String.class);
     protected final VarDB<BigInteger> decimals = Context.newVarDB("decimals", BigInteger.class);
     protected final VarDB<Address> admin = Context.newVarDB("admin", Address.class);
-    protected final VarDB<Integer> nIssuers = Context.newVarDB("nIssuers", Integer.class);
+    protected final VarDB<BigInteger> nIssuers = Context.newVarDB("number_of_issuers", BigInteger.class);
     protected final ArrayDB<Address> issuers = Context.newArrayDB("issuers", Address.class);
-    protected final VarDB<BigInteger> totalSupply = Context.newVarDB("totalSupply", BigInteger.class);
+    protected final VarDB<BigInteger> totalSupply = Context.newVarDB("total_supply", BigInteger.class);
     protected final VarDB<Boolean> _paused = Context.newVarDB("paused", Boolean.class);
-    protected final VarDB<BigInteger> freeDailyTxLimit = Context.newVarDB("freeDailyTxLimit", BigInteger.class);
-    protected final DictDB<Address, BigInteger> _balances = Context.newDictDB("_balances", BigInteger.class);
-    protected final DictDB<Address, BigInteger> _allowances = Context.newDictDB("_allowances", BigInteger.class);
-    protected final BranchDB<Address, DictDB<String, BigInteger>> _whitelist = Context.newBranchDB("_whitelist", BigInteger.class);
+    protected final VarDB<BigInteger> freeDailyTxLimit = Context.newVarDB("free_daily_tx_limit", BigInteger.class);
+    protected final DictDB<Address, BigInteger> _balances = Context.newDictDB("balances", BigInteger.class);
+    protected final DictDB<Address, BigInteger> _allowances = Context.newDictDB("allowances", BigInteger.class);
+    protected final BranchDB<Address, DictDB<String, BigInteger>> _whitelist = Context.newBranchDB("whitelist", BigInteger.class);
 
     public static final String START_HEIGHT = "free_tx_start_height";
     public static final String TXN_COUNT = "free_tx_count_since_start";
@@ -57,27 +55,7 @@ public abstract class AbstractStableCoin implements IRC2Base {
     public void WhitelistWallet(Address _to, byte[] _data) {
     }
 
-    public AbstractStableCoin(String _name, String _symbol, BigInteger _decimals, Address _admin, @Optional int _nIssuers) {
-
-        if (name.get() == null) {
-            if (_nIssuers == 0) {
-                _nIssuers = 2;
-            }
-            require(_name.length() > 0, "Invalid Token Name");
-            require(_symbol.length() > 0, "Invalid Token Symbol Name");
-            require(_decimals.compareTo(BigInteger.ZERO) > 0, "Decimals cannot be less than 0");
-            require(_nIssuers > 0, "1 or more issuers required");
-
-            this.name.set(_name);
-            this.symbol.set(_symbol);
-            this.decimals.set(_decimals);
-            this.admin.set(_admin);
-            this.nIssuers.set(_nIssuers);
-            this.totalSupply.set(BigInteger.ZERO);
-            this._paused.set(false);
-            this.freeDailyTxLimit.set(BigInteger.valueOf(50));
-        }
-
+    public AbstractStableCoin() {
     }
 
     protected void onlyAdmin(String msg) {
@@ -160,7 +138,7 @@ public abstract class AbstractStableCoin implements IRC2Base {
 
         _whitelistWallet(_to, "whitelist on mint".getBytes());
 
-        totalSupply.set(totalSupply.get().add(_value));
+        totalSupply.set(totalSupply().add(_value));
         _balances.set(_to, _balances.getOrDefault(_to, BigInteger.ZERO).add(_value));
 
         Transfer(EOA_ZERO, _to, _value, "mint".getBytes());
@@ -181,7 +159,7 @@ public abstract class AbstractStableCoin implements IRC2Base {
                 "Insufficient balance to burn");
         require(!_paused.get(), "Cannot burn when paused");
 
-        totalSupply.set(totalSupply.getOrDefault(BigInteger.ZERO).subtract(_value));
+        totalSupply.set(totalSupply().subtract(_value));
         _balances.set(_from, _balances.getOrDefault(_from, BigInteger.ZERO).subtract(_value));
 
         Transfer(_from, EOA_ZERO, _value, "burn".getBytes());
@@ -197,9 +175,9 @@ public abstract class AbstractStableCoin implements IRC2Base {
     protected void _whitelistWallet(Address _to, byte[] _data) {
         require(!_to.equals(EOA_ZERO) , "Can not whitelist zero wallet address");
 
-        if (_whitelist.at(_to).get("free_tx_start_height") == null) {
-            _whitelist.at(_to).set("free_tx_start_height", BigInteger.valueOf(getBlockHeight()));
-            _whitelist.at(_to).set("free_tx_count_since_start", BigInteger.ONE);
+        if (_whitelist.at(_to).get(START_HEIGHT) == null) {
+            _whitelist.at(_to).set(START_HEIGHT, BigInteger.valueOf(getBlockHeight()));
+            _whitelist.at(_to).set(TXN_COUNT, BigInteger.ONE);
 
             WhitelistWallet(_to, _data);
         }

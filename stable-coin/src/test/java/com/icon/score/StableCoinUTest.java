@@ -15,7 +15,7 @@ import score.Address;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
-public class AppTest extends TestBase {
+public class StableCoinUTest extends TestBase {
 
     public static final ServiceManager sm = getServiceManager();
     private static final Account owner = sm.createAccount();
@@ -23,7 +23,7 @@ public class AppTest extends TestBase {
     private static final String name = "StableToken";
     private static final String symbol = "STO";
     private static final BigInteger decimals = BigInteger.valueOf(18);
-    private static final int nIssuers = 2;
+    private static final BigInteger nIssuers = BigInteger.valueOf(2);
     protected final Address EOA_ZERO = Address.fromString("hx0000000000000000000000000000000000000000");
 
     private static Account Alice, Bob, C;
@@ -73,6 +73,10 @@ public class AppTest extends TestBase {
         tokenScore.invoke(owner, "addIssuer", Alice.getAddress());
         tokenScore.invoke(owner, "addIssuer", Bob.getAddress());
 
+        //verify the allowance
+        assertEquals(BigInteger.ZERO,tokenScore.call("issuerAllowance",Alice.getAddress()));
+        assertEquals(BigInteger.ZERO,tokenScore.call("issuerAllowance",Bob.getAddress()));
+
         //get issuers
         Address[] issuers = (Address[]) tokenScore.call("getIssuers");
         assertEquals(2, issuers.length);
@@ -109,7 +113,6 @@ public class AppTest extends TestBase {
         Executable thirdIssuer = () -> tokenScore.invoke(owner, "addIssuer", C.getAddress());
         String expectedErrorMessage = "Cannot have more than " + nIssuers + " issuers";
         expectErrorMessage(thirdIssuer, expectedErrorMessage);
-
     }
 
     @Test
@@ -145,6 +148,20 @@ public class AppTest extends TestBase {
         //change to 2
         tokenScore.invoke(owner,"changeFreeDailyTxLimit",BigInteger.TWO);
         assertEquals(BigInteger.TWO, tokenScore.call("freeDailyTxLimit"));
+    }
+
+    @Test
+    void approve_negative_amount() {
+        //add issuer
+        tokenScore.invoke(owner,"addIssuer",Alice.getAddress());
+
+        //approve negative amount
+        tokenScore.invoke(owner,"approve",Alice.getAddress(),BigInteger.valueOf(10).negate());
+
+        //try to mint
+        Executable allowanceExceed = () -> tokenScore.invoke(Alice, "mint", BigInteger.valueOf(10));
+        String expectedErrorMessage = "Allowance amount to mint exceed";
+        expectErrorMessage(allowanceExceed, expectedErrorMessage);
     }
 
     @Test
@@ -216,6 +233,11 @@ public class AppTest extends TestBase {
     void burn_test_with_zero_amount() {
         Executable burn = () -> tokenScore.invoke(owner, "burn", BigInteger.ZERO);
         String expectedErrorMessage = "Amount to burn should be greater than zero";
+        expectErrorMessage(burn, expectedErrorMessage);
+
+        //burn negative amount
+        burn = () -> tokenScore.invoke(owner, "burn", BigInteger.ONE.negate());
+        expectedErrorMessage = "Amount to burn should be greater than zero";
         expectErrorMessage(burn, expectedErrorMessage);
     }
 
@@ -308,16 +330,25 @@ public class AppTest extends TestBase {
         assertEquals(value, tokenScore.call("balanceOf", owner.getAddress()));
         assertEquals(BigInteger.ZERO, tokenScore.call("balanceOf", Alice.getAddress()));
 
+        BigInteger ownerBalBeforeTransfer = (BigInteger) tokenScore.call("balanceOf", owner.getAddress());
+        BigInteger AliceBalBeforeTransfer = (BigInteger) tokenScore.call("balanceOf", Alice.getAddress());
+
+        BigInteger transferValue =BigInteger.valueOf(5).pow(decimals.intValue());
         //transfer
-        tokenScore.invoke(owner, "transfer", Alice.getAddress(), value.divide(BigInteger.TWO), "transfer".getBytes());
+        tokenScore.invoke(owner, "transfer", Alice.getAddress(), transferValue, "transfer".getBytes());
+
+        BigInteger ownerBalAfterTransfer = (BigInteger) tokenScore.call("balanceOf", owner.getAddress());
+        BigInteger AliceBalAfterTransfer = (BigInteger) tokenScore.call("balanceOf", Alice.getAddress());
 
         //balance after transfer
-        assertEquals(value.divide(BigInteger.TWO), tokenScore.call("balanceOf", owner.getAddress()));
-        assertEquals(value.divide(BigInteger.TWO), tokenScore.call("balanceOf", Alice.getAddress()));
+        assertEquals(ownerBalBeforeTransfer.subtract(transferValue),ownerBalAfterTransfer);
+        assertEquals(AliceBalBeforeTransfer.add(transferValue),AliceBalAfterTransfer);
 
         // transfer self
-        tokenScore.invoke(Alice, "transfer", Alice.getAddress(), value.divide(BigInteger.TWO), "self transfer".getBytes());
-        assertEquals(value.divide(BigInteger.TWO), tokenScore.call("balanceOf", Alice.getAddress()));
+        tokenScore.invoke(Alice, "transfer", Alice.getAddress(), transferValue, "self transfer".getBytes());
+        BigInteger AliceBalAfterSelfTransfer = (BigInteger) tokenScore.call("balanceOf", Alice.getAddress());
+
+        assertEquals(AliceBalAfterTransfer,AliceBalAfterSelfTransfer);
         assertEquals(value, tokenScore.call("totalSupply"));
     }
 

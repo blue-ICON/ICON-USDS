@@ -20,8 +20,28 @@ public class StableCoin extends AbstractStableCoin {
      * @param _admin    The admin for the token.
      * @param _nIssuers Maximum number of issuers.
      */
-    public StableCoin(String _name, String _symbol, BigInteger _decimals, Address _admin, @Optional int _nIssuers) {
-        super(_name, _symbol, _decimals, _admin, _nIssuers);
+    public StableCoin(String _name, String _symbol, BigInteger _decimals, Address _admin, @Optional BigInteger _nIssuers) {
+        super();
+        if (name.get() == null) {
+            if (_nIssuers.equals(BigInteger.ZERO)) {
+                _nIssuers = BigInteger.TWO;
+            }
+            require(_name.length() > 0, "Invalid Token Name");
+            require(_symbol.length() > 0, "Invalid Token Symbol Name");
+            require(_decimals.compareTo(BigInteger.ZERO) > 0, "Decimals cannot be less than 0");
+            require(_nIssuers.compareTo(BigInteger.ZERO) > 0, "1 or more issuers required");
+
+            this.admin.set(_admin);
+            this.nIssuers.set(_nIssuers);
+
+            this.name.set(_name);
+            this.symbol.set(_symbol);
+            this.decimals.set(_decimals);
+            this.totalSupply.set(BigInteger.ZERO);
+            this._paused.set(false);
+
+            this.freeDailyTxLimit.set(BigInteger.valueOf(50));
+        }
     }
 
     /**
@@ -116,12 +136,12 @@ public class StableCoin extends AbstractStableCoin {
     @External(readonly = true)
     public BigInteger remainingFreeTxThisTerm(Address _owner) {
 
-        if (_whitelist.at(_owner).get("free_tx_start_height")!=null) {
-            if (_whitelist.at(_owner).get("free_tx_start_height").add(TERM_LENGTH).compareTo(BigInteger.valueOf
+        if (_whitelist.at(_owner).get(START_HEIGHT)!=null) {
+            if (_whitelist.at(_owner).get(START_HEIGHT).add(TERM_LENGTH).compareTo(BigInteger.valueOf
                     (Context.getBlockHeight())) < 0) {
                 return freeDailyTxLimit.get();
             } else {
-                return freeDailyTxLimit.get().subtract(_whitelist.at(_owner).get("free_tx_count_since_start"));
+                return freeDailyTxLimit.get().subtract(_whitelist.at(_owner).get(TXN_COUNT));
             }
         }
         return BigInteger.ZERO;
@@ -180,7 +200,7 @@ public class StableCoin extends AbstractStableCoin {
     public void addIssuer(Address _issuer) {
         require(!isIssuer(_issuer), _issuer + " is already an issuer");
         onlyAdmin("Only admin can add issuer");
-        require(issuers.size() < nIssuers.get(), "Cannot have more than " + nIssuers.get() + " issuers");
+        require(issuers.size() < nIssuers.get().intValue(), "Cannot have more than " + nIssuers.get() + " issuers");
         issuers.add(_issuer);
     }
 
