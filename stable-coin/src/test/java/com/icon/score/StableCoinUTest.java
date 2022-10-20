@@ -263,6 +263,31 @@ public class StableCoinUTest extends TestBase {
     }
 
     @Test
+    void mint_by_contract(){
+        BigInteger value = BigInteger.TEN.pow(decimals.intValue());
+
+        tokenScore.invoke(owner, "addIssuer", scoreAccount.getAddress());
+        tokenScore.invoke(owner, "approve", scoreAccount.getAddress(), value);
+
+        BigInteger balance_before= (BigInteger) tokenScore.call("balanceOf",scoreAccount.getAddress());
+        BigInteger total_supply_before= (BigInteger) tokenScore.call("totalSupply");
+
+        tokenScore.invoke(scoreAccount,"mint",value);
+        System.out.println(tokenScore.call("balanceOf",scoreAccount.getAddress()));
+
+        BigInteger balance_after= (BigInteger) tokenScore.call("balanceOf",scoreAccount.getAddress());
+        BigInteger total_supply_after= (BigInteger) tokenScore.call("totalSupply");
+
+        assertEquals(balance_before.add(value),balance_after);
+        assertEquals(total_supply_before.add(value),total_supply_after);
+
+        Executable allowanceMintExceed = () ->  tokenScore.invoke(scoreAccount,"mint",value);
+        String expectedErrorMessage = "Allowance amount to mint exceed";
+
+        expectErrorMessage(allowanceMintExceed,expectedErrorMessage);
+    }
+
+    @Test
     void whitelisted_account_mints_again(){
         BigInteger value = BigInteger.TEN.pow(decimals.intValue());
 
