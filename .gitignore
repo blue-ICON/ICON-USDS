@@ -1,9 +1,16 @@
-stable-coin/build/
-.gradle
-JavaTest.json
+# Compiled class file
+*.class
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
 .idea
-Untitled.ipynb
-testinteg/build/
 
 # Package Files #
 *.jar
+*.zip
+
+.gradle
+**/build/
+!gradle-wrapper.jar
+
+gradle.properties
