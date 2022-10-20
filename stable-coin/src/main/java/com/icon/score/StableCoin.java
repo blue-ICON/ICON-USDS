@@ -2,11 +2,13 @@ package com.icon.score;
 
 import score.Address;
 import score.Context;
+import score.DictDB;
 import score.annotation.External;
 import score.annotation.Optional;
 
 import java.math.BigInteger;
 
+import static score.Context.getBlockHeight;
 import static score.Context.require;
 
 public class StableCoin extends AbstractStableCoin {
@@ -20,8 +22,28 @@ public class StableCoin extends AbstractStableCoin {
      * @param _admin    The admin for the token.
      * @param _nIssuers Maximum number of issuers.
      */
-    public StableCoin(String _name, String _symbol, BigInteger _decimals, Address _admin, @Optional int _nIssuers) {
-        super(_name, _symbol, _decimals, _admin, _nIssuers);
+    public StableCoin(String _name, String _symbol, BigInteger _decimals, Address _admin, @Optional BigInteger _nIssuers) {
+        super();
+        if (name.get() == null) {
+            if (_nIssuers.equals(BigInteger.ZERO)) {
+                _nIssuers = BigInteger.TWO;
+            }
+            require(_name.length() > 0, "Invalid Token Name");
+            require(_symbol.length() > 0, "Invalid Token Symbol Name");
+            require(_decimals.compareTo(BigInteger.ZERO) > 0, "Decimals cannot be less than 0");
+            require(_nIssuers.compareTo(BigInteger.ZERO) > 0, "1 or more issuers required");
+
+            this.admin.set(_admin);
+            this.nIssuers.set(_nIssuers);
+
+            this.name.set(_name);
+            this.symbol.set(_symbol);
+            this.decimals.set(_decimals);
+            this.totalSupply.set(BigInteger.ZERO);
+            this._paused.set(false);
+
+            this.freeDailyTxLimit.set(BigInteger.valueOf(50));
+        }
     }
 
     /**
@@ -77,8 +99,8 @@ public class StableCoin extends AbstractStableCoin {
     public Address[] getIssuers() {
         int len = issuers.size();
         Address[] issuersList = new Address[len];
-        for (int i = 0; i < issuers.size(); i++) {
-            issuersList[i] = (issuers.get(i));
+        for (int i = 0; i < len; i++) {
+            issuersList[i] = issuers.get(i);
         }
         return issuersList;
     }
@@ -116,12 +138,13 @@ public class StableCoin extends AbstractStableCoin {
     @External(readonly = true)
     public BigInteger remainingFreeTxThisTerm(Address _owner) {
 
-        if (_whitelist.at(_owner).get("free_tx_start_height")!=null) {
-            if (_whitelist.at(_owner).get("free_tx_start_height").add(TERM_LENGTH).compareTo(BigInteger.valueOf
-                    (Context.getBlockHeight())) < 0) {
+        DictDB<String, BigInteger> userFeeSharing = _whitelist.at(_owner);
+        BigInteger currentBlockHeight = BigInteger.valueOf(getBlockHeight());
+        if (userFeeSharing.get(START_HEIGHT)!=null) {
+            if (userFeeSharing.get(START_HEIGHT).add(TERM_LENGTH).compareTo(currentBlockHeight) < 0) {
                 return freeDailyTxLimit.get();
             } else {
-                return freeDailyTxLimit.get().subtract(_whitelist.at(_owner).get("free_tx_count_since_start"));
+                return freeDailyTxLimit.get().subtract(userFeeSharing.get(TXN_COUNT));
             }
         }
         return BigInteger.ZERO;
@@ -149,18 +172,16 @@ public class StableCoin extends AbstractStableCoin {
 
         setFeeSharingPercentage();
 
-        if (_data == null) {
-            _data = new byte[0];
-        }
         _transfer(Context.getCaller(), _to, _value, _data);
     }
 
-    @External
+
     /**
      * Changes daily free transactions limit for whitelisted users
      * Only admin can call this method
      * @param _new_limit
      */
+    @External
     public void changeFreeDailyTxLimit(BigInteger _new_limit) {
 
         require(_new_limit.compareTo(BigInteger.ZERO) >= 0,
@@ -180,7 +201,7 @@ public class StableCoin extends AbstractStableCoin {
     public void addIssuer(Address _issuer) {
         require(!isIssuer(_issuer), _issuer + " is already an issuer");
         onlyAdmin("Only admin can add issuer");
-        require(issuers.size() < nIssuers.get(), "Cannot have more than " + nIssuers.get() + " issuers");
+        require(issuers.size() < nIssuers.get().intValue(), "Cannot have more than " + nIssuers.get() + " issuers");
         issuers.add(_issuer);
     }
 
@@ -206,7 +227,7 @@ public class StableCoin extends AbstractStableCoin {
                 }
             }
         }
-        _allowances.set(_issuer, BigInteger.ZERO);
+        _allowances.set(_issuer, null);
     }
 
 
