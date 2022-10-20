@@ -32,7 +32,7 @@ public class StableCoinUTest extends TestBase {
     private static final BigInteger decimals = BigInteger.valueOf(18);
     private static final BigInteger nIssuers = BigInteger.valueOf(2);
     protected final Address EOA_ZERO = new Address(new byte[21]);
-    private static Account Alice, Bob, C;
+    private static Account Alice, Bob, Cathy;
     StableCoin scoreSpy;
     public static final Account scoreAccount = Account.newScoreAccount(101);
 
@@ -48,7 +48,7 @@ public class StableCoinUTest extends TestBase {
         tokenScore = sm.deploy(owner, StableCoin.class, name, symbol, decimals, owner.getAddress(), nIssuers);
         Alice = sm.createAccount();
         Bob = sm.createAccount();
-        C = sm.createAccount();
+        Cathy = sm.createAccount();
 
         StableCoin instance = (StableCoin) tokenScore.getInstance();
         scoreSpy= spy(instance);
@@ -128,7 +128,7 @@ public class StableCoinUTest extends TestBase {
     void add_more_than_two_issuers(){
         tokenScore.invoke(owner, "addIssuer", Alice.getAddress());
         tokenScore.invoke(owner, "addIssuer", Bob.getAddress());
-        Executable thirdIssuer = () -> tokenScore.invoke(owner, "addIssuer", C.getAddress());
+        Executable thirdIssuer = () -> tokenScore.invoke(owner, "addIssuer", Cathy.getAddress());
         String expectedErrorMessage = "Cannot have more than " + nIssuers + " issuers";
         expectErrorMessage(thirdIssuer, expectedErrorMessage);
     }
