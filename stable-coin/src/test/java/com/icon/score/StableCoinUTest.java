@@ -11,6 +11,7 @@ import java.math.BigInteger;
 import com.iconloop.score.test.Account;
 import com.iconloop.score.test.ServiceManager;
 import score.Address;
+import scorex.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -25,8 +26,8 @@ public class StableCoinUTest extends TestBase {
     private static final BigInteger decimals = BigInteger.valueOf(18);
     private static final BigInteger nIssuers = BigInteger.valueOf(2);
     protected final Address EOA_ZERO = new Address(new byte[21]);
-
     private static Account Alice, Bob, C;
+    public static final Account MOCK_CONTRACT_ADDRESS = Account.newScoreAccount(101);
 
 
     @BeforeEach
@@ -322,6 +323,21 @@ public class StableCoinUTest extends TestBase {
     }
 
     @Test
+    void transfer_with_data_null() {
+        mint_flow();
+        BigInteger value = BigInteger.TEN.pow(decimals.intValue());
+        tokenScore.invoke(owner, "transfer", Alice.getAddress(), value,null);
+    }
+
+    @Test
+    void transfer_to_contract() {
+        mint_flow();
+        BigInteger value = BigInteger.TEN.pow(decimals.intValue());
+        System.out.println(MOCK_CONTRACT_ADDRESS.getAddress());
+        tokenScore.invoke(owner, "transfer", MOCK_CONTRACT_ADDRESS.getAddress(), value,"transfer".getBytes());
+    }
+
+    @Test
     void transfer_flow() {
         mint_flow();
         BigInteger value = BigInteger.TEN.pow(decimals.intValue());
@@ -336,6 +352,9 @@ public class StableCoinUTest extends TestBase {
         BigInteger transferValue =BigInteger.valueOf(5).pow(decimals.intValue());
         //transfer
         tokenScore.invoke(owner, "transfer", Alice.getAddress(), transferValue, "transfer".getBytes());
+
+        //check whether Alice is whitelisted or not
+        assertEquals(false,tokenScore.call("isWhitelisted",Alice.getAddress()));
 
         BigInteger ownerBalAfterTransfer = (BigInteger) tokenScore.call("balanceOf", owner.getAddress());
         BigInteger AliceBalAfterTransfer = (BigInteger) tokenScore.call("balanceOf", Alice.getAddress());

@@ -173,7 +173,7 @@ public class StableCoin extends AbstractStableCoin {
         setFeeSharingPercentage();
 
         if (_data == null) {
-            _data = new byte[0];
+            _data = "None".getBytes();
         }
         _transfer(Context.getCaller(), _to, _value, _data);
     }
