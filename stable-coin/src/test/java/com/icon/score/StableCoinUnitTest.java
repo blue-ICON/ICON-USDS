@@ -22,7 +22,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 
-public class StableCoinUTest extends TestBase {
+public class StableCoinUnitTest extends TestBase {
 
     public static final ServiceManager sm = getServiceManager();
     private static final Account owner = sm.createAccount();

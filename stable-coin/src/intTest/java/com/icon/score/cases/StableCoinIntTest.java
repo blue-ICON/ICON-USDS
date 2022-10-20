@@ -48,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class StableCoinTest extends TestBase {
+public class StableCoinIntTest extends TestBase {
     private static final boolean DEBUG = true;
     private static final Address ZERO_ADDRESS = new Address("hx0000000000000000000000000000000000000000");
     private static TransactionHandler txHandler;
