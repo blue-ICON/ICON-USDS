@@ -1,5 +1,6 @@
-package com.icon.score;
+package com.icon.score.unit.test;
 
+import com.icon.score.StableCoin;
 import com.iconloop.score.test.Score;
 import com.iconloop.score.test.TestBase;
 import org.junit.jupiter.api.Assertions;
