@@ -227,7 +227,7 @@ public class StableCoin extends AbstractStableCoin {
                 }
             }
         }
-        _allowances.set(_issuer, null);
+        _allowances.set(_issuer, BigInteger.ZERO);
     }
 
 
