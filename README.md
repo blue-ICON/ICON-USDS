@@ -21,26 +21,39 @@ Run the `optimizedJar` task to generate the optimized jar bundle.
 ```
 The output jar will be located at `./stable-coin/build/libs/stable-coin-0.1.0-optimized.jar`
 
-### 3. Deploy the optimized jar
+
+### 3. Update gradle.properties
+
+Please generate 'gradle.properties' with the following parameters to deploy the USDS contract.
+
+   ```
+   keystoreName= path to deployer wallet
+   keystorePass= deployer wallet password
+   admin-address= address of admin wallet
+   ```
+Please add the following parameter to the `gradle.properties` file to update the existing contract.
+   ```
+   usds-address= contract address to update (for mainnet its cxbb2871f468a3008f80b08fdde5b8b951583acf06)
+   ```
+
+
+### 4. Deploy the optimized jar
 
 Deploy using either of the following commands. The `build.gradle` in `stable-coin` has 4 endpoints included. 
 To deploy on Berlin, run the following command. To deploy on other networks, for example, change `deployToBerlin` 
 to `deployToLisbon`.
 
 ```sh
-./gradlew stable-coin:deployToBerlin -PkeystoreName=<your_wallet_json> -PkeystorePass=<password>
-```
-```sh
-./gradlew stable-coin:deployToBerlin -PkeystoreName='JavaTest.json' -PkeystorePass='p@ssw0rd'
+./gradlew stable-coin:deployToBerlin
 ```
 
-### 4. Run unit test
+### 5. Run unit test
 
 ```sh
 ./gradlew :stable-coin:test
 ```
 
-### 5. Run integration test
+### 6. Run integration test
 
 To run integration test goloop instance is required. [gochain-local](https://github.com/icon-project/gochain-local)
 repository has the tutorial to setup local blockchain.
