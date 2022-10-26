@@ -33,7 +33,7 @@ Please generate 'gradle.properties' with the following parameters to deploy the 
    ```
 Please add the following parameter to the `gradle.properties` file to update the existing contract.
    ```
-   usds-address= contract address to update (for mainnet its cxbb2871f468a3008f80b08fdde5b8b951583acf06)
+   usds-address= contract address to update (for mainnet its cxbb2871f468a3008f80b08fdde5b8b951583acf06 DO NOT DEPLOY ON MAINNET)
    ```
 
 
