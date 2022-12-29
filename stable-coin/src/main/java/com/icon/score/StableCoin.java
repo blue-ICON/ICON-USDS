@@ -223,7 +223,7 @@ public class StableCoin extends AbstractStableCoin {
         require(isIssuer(_issuer), _issuer + " not an issuer");
 
         Address top = issuers.pop();
-        BigInteger issuerAllowance = _allowances.get(_issuer);
+        BigInteger issuerAllowance = _allowances.getOrDefault(_issuer, BigInteger.ZERO);
 
         if (!top.equals(_issuer)) {
             for (int i = 0; i < issuers.size(); i++) {
