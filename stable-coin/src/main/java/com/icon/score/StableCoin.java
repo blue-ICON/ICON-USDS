@@ -32,6 +32,7 @@ public class StableCoin extends AbstractStableCoin {
             require(_symbol.length() > 0, "Invalid Token Symbol Name");
             require(_decimals.compareTo(BigInteger.ZERO) > 0, "Decimals cannot be less than 0");
             require(_nIssuers.compareTo(BigInteger.ZERO) > 0, "1 or more issuers required");
+            require(!_admin.equals(EOA_ZERO), "Cannot set zero address as admin");
 
             this.admin.set(_admin);
             this.nIssuers.set(_nIssuers);
@@ -253,7 +254,7 @@ public class StableCoin extends AbstractStableCoin {
      */
     @External
     public void transferAdminRight(Address _newAdmin) {
-
+        require(!_newAdmin.equals(EOA_ZERO),"Cannot set zero address as admin");
         onlyAdmin("Only admin can transfer their admin right");
         admin.set(_newAdmin);
     }
