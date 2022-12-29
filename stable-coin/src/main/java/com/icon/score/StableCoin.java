@@ -190,7 +190,7 @@ public class StableCoin extends AbstractStableCoin {
 
         freeDailyTxLimit.set(_new_limit);
 
-        DailyTransactionLimit(Context.getCaller(),_new_limit);
+        DailyTransactionLimit(Context.getCaller(), _new_limit);
     }
 
     /**
@@ -206,7 +206,7 @@ public class StableCoin extends AbstractStableCoin {
         require(issuers.size() < nIssuers.get().intValue(), "Cannot have more than " + nIssuers.get() + " issuers");
         issuers.add(_issuer);
 
-        AddIssuer(Context.getCaller(),_issuer);
+        AddIssuer(Context.getCaller(), _issuer);
     }
 
 
@@ -234,7 +234,7 @@ public class StableCoin extends AbstractStableCoin {
         }
         _allowances.set(_issuer, BigInteger.ZERO);
 
-        RemoveIssuer(Context.getCaller(),_issuer,issuerAllowance);
+        RemoveIssuer(Context.getCaller(), _issuer, issuerAllowance);
     }
 
 
@@ -263,7 +263,7 @@ public class StableCoin extends AbstractStableCoin {
 
         onlyAdmin("Only admin can transfer their admin right");
         admin.set(_newAdmin);
-        TransferAdmin(Context.getCaller(),_newAdmin);
+        TransferAdmin(Context.getCaller(), _newAdmin);
     }
 
     /**
@@ -274,7 +274,7 @@ public class StableCoin extends AbstractStableCoin {
     public void togglePause() {
         onlyAdmin("Only admin can toggle pause");
         _paused.set(!isPaused());
-        TogglePause(Context.getCaller(),_paused.get());
+        TogglePause(Context.getCaller(), _paused.get());
     }
 
     /**

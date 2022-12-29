@@ -55,24 +55,25 @@ public abstract class AbstractStableCoin implements IRC2Base {
     @EventLog(indexed = 2)
     public void WhitelistWallet(Address _to, byte[] _data) {
     }
+
     @EventLog(indexed = 2)
     public void DailyTransactionLimit(Address _caller, BigInteger _limit) {
     }
 
     @EventLog(indexed = 2)
-    public void AddIssuer(Address _caller ,Address _issuer) {
+    public void AddIssuer(Address _caller, Address _issuer) {
     }
 
     @EventLog(indexed = 3)
-    public void RemoveIssuer(Address _caller,Address _issuer, BigInteger _issuerAllowance) {
+    public void RemoveIssuer(Address _caller, Address _issuer, BigInteger _issuerAllowance) {
     }
 
     @EventLog(indexed = 2)
-    public void TransferAdmin(Address _caller,Address _newAdmin) {
+    public void TransferAdmin(Address _caller, Address _newAdmin) {
     }
 
     @EventLog(indexed = 2)
-    public void TogglePause(Address _caller,boolean _status) {
+    public void TogglePause(Address _caller, boolean _status) {
     }
 
     public AbstractStableCoin() {
