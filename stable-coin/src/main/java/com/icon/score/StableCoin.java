@@ -185,8 +185,7 @@ public class StableCoin extends AbstractStableCoin {
     @External
     public void changeFreeDailyTxLimit(BigInteger _new_limit) {
 
-        require(_new_limit.compareTo(BigInteger.ZERO) >= 0,
-                "Free daily transaction limit cannot be under 0.");
+        require(_new_limit.compareTo(BigInteger.ZERO) >= 0, "Free daily transaction limit cannot be under 0.");
         onlyAdmin("Only admin can change free daily transaction limit");
 
         freeDailyTxLimit.set(_new_limit);
@@ -254,7 +253,7 @@ public class StableCoin extends AbstractStableCoin {
      */
     @External
     public void transferAdminRight(Address _newAdmin) {
-        require(!_newAdmin.equals(EOA_ZERO),"Cannot set zero address as admin");
+        require(!_newAdmin.equals(EOA_ZERO), "Cannot set zero address as admin");
         onlyAdmin("Only admin can transfer their admin right");
         admin.set(_newAdmin);
     }
