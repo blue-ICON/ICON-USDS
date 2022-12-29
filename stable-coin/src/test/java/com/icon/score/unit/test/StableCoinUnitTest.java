@@ -127,6 +127,10 @@ public class StableCoinUnitTest extends TestBase {
         issuers = (Address[]) tokenScore.call("getIssuers");
         assertEquals(1, issuers.length);
         assertEquals(Bob.getAddress(), issuers[0]);
+
+        verify(scoreSpy).AddIssuer(owner.getAddress(),Alice.getAddress());
+        verify(scoreSpy).AddIssuer(owner.getAddress(),Bob.getAddress());
+        verify(scoreSpy).RemoveIssuer(owner.getAddress(),Alice.getAddress(),BigInteger.ONE);
     }
 
     @Test
@@ -136,6 +140,9 @@ public class StableCoinUnitTest extends TestBase {
         Executable thirdIssuer = () -> tokenScore.invoke(owner, "addIssuer", Cathy.getAddress());
         String expectedErrorMessage = "Cannot have more than " + nIssuers + " issuers";
         expectErrorMessage(thirdIssuer, expectedErrorMessage);
+
+        verify(scoreSpy).AddIssuer(owner.getAddress(),Alice.getAddress());
+        verify(scoreSpy).AddIssuer(owner.getAddress(),Bob.getAddress());
     }
 
     @Test
@@ -154,6 +161,8 @@ public class StableCoinUnitTest extends TestBase {
         expectedErrorMessage = "Only admin can add issuer";
         expectErrorMessage(addIssuerNotByAdmin, expectedErrorMessage);
 
+        verify(scoreSpy).TransferAdmin(owner.getAddress(),Alice.getAddress());
+
     }
 
     @Test
@@ -171,6 +180,8 @@ public class StableCoinUnitTest extends TestBase {
         //change to 2
         tokenScore.invoke(owner, "changeFreeDailyTxLimit", BigInteger.TWO);
         assertEquals(BigInteger.TWO, tokenScore.call("freeDailyTxLimit"));
+
+        verify(scoreSpy).DailyTransactionLimit(owner.getAddress(),BigInteger.TWO);
     }
 
     @Test
@@ -215,6 +226,8 @@ public class StableCoinUnitTest extends TestBase {
         Executable allowanceExceed = () -> tokenScore.invoke(owner, "mint", value.add(BigInteger.ONE));
         String expectedErrorMessage = "Allowance amount to mint exceed";
         expectErrorMessage(allowanceExceed, expectedErrorMessage);
+
+        verify(scoreSpy).Approval(owner.getAddress(),owner.getAddress(),value);
     }
 
     @Test
@@ -228,6 +241,8 @@ public class StableCoinUnitTest extends TestBase {
         Executable pausedMint = () -> tokenScore.invoke(owner, "mint", value.add(BigInteger.ONE));
         String expectedErrorMessage = "Cannot mint when paused";
         expectErrorMessage(pausedMint, expectedErrorMessage);
+
+        verify(scoreSpy).TogglePause(owner.getAddress(),true);
 
     }
 

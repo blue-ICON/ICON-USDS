@@ -126,7 +126,10 @@ public class StableCoinIntTest extends TestBase {
 
         LOG.infoEntering("admin removes owner as issuer");
         Bytes remove = tokenScore.removeIssuer(ownerWallet, ownerWallet.getAddress());
-        assertSuccess(txHandler.getResult(remove));
+        TransactionResult txResult = txHandler.getResult(remove);
+        assertSuccess(txResult);
+
+        tokenScore.removeIssuerLog(txResult,ownerWallet.getAddress(),ownerWallet.getAddress(),value);
 
         LOG.infoEntering("admin try remove owner as issuer again");
         remove = tokenScore.removeIssuer(ownerWallet, ownerWallet.getAddress());
@@ -141,7 +144,11 @@ public class StableCoinIntTest extends TestBase {
 
         LOG.infoEntering("transfer admin right");
         Bytes adminRight = tokenScore.transferAdminRight(ownerWallet, caller.getAddress());
-        assertSuccess(txHandler.getResult(adminRight));
+        TransactionResult txResult = txHandler.getResult(adminRight);
+        assertSuccess(txResult);
+
+        tokenScore.TransferAdminLog(txResult,ownerWallet.getAddress(),caller.getAddress());
+
 
         LOG.infoEntering("owner add owner as issuer");
         Bytes add = tokenScore.addIssuer(ownerWallet, ownerWallet.getAddress());
@@ -172,7 +179,10 @@ public class StableCoinIntTest extends TestBase {
 
         LOG.infoEntering("admin pause the contract");
         Bytes togglePause = tokenScore.togglePause(ownerWallet);
-        assertSuccess(txHandler.getResult(togglePause));
+        TransactionResult txResult = txHandler.getResult(togglePause);
+        assertSuccess(txResult);
+
+        tokenScore.TogglePauseLog(txResult,ownerWallet.getAddress(),true);
 
         LOG.infoEntering("mint fails when paused");
         Bytes mint = tokenScore.mint(ownerWallet, value);
@@ -188,7 +198,10 @@ public class StableCoinIntTest extends TestBase {
 
         LOG.infoEntering("admin unpause the contract");
         togglePause = tokenScore.togglePause(ownerWallet);
-        assertSuccess(txHandler.getResult(togglePause));
+        txResult = txHandler.getResult(togglePause);
+        assertSuccess(txResult);
+
+        tokenScore.TogglePauseLog(txResult,ownerWallet.getAddress(),false);
     }
 
     @Order(6)
@@ -342,12 +355,15 @@ public class StableCoinIntTest extends TestBase {
         // 1. Add Issuers caller
         LOG.infoEntering("admin add owner as issuer");
         Bytes add = tokenScore.addIssuer(ownerWallet, caller.getAddress());
-        assertSuccess(txHandler.getResult(add));
+        TransactionResult txResult = txHandler.getResult(add);
+        assertSuccess(txResult);
+
+        tokenScore.addIssuerLog(txResult,ownerWallet.getAddress(),caller.getAddress());
 
         // 2. Approve Issuers an amount
         LOG.infoEntering("admin approve owner to mint value amount");
         Bytes approve = tokenScore.approve(ownerWallet, caller.getAddress(), value);
-        TransactionResult txResult = txHandler.getResult(approve);
+        txResult = txHandler.getResult(approve);
         assertSuccess(txResult);
 
         // verify event log
@@ -422,14 +438,9 @@ public class StableCoinIntTest extends TestBase {
             mint();
         }
 
-        BigInteger depositAmount = ICX.multiply(BigInteger.valueOf(5000));
-
-        Bytes loadIcx = txHandler.transfer(ownerWallet.getAddress(), depositAmount);
-        assertSuccess(txHandler.getResult(loadIcx));
-
-        // deposit 5000 ICX to Score
-        Bytes depositICX = txHandler.depositICX(ownerWallet, tokenScore.getAddress(), depositAmount, null);
-        assertSuccess(txHandler.getResult(depositICX));
+        if (!status.getOrDefault("deposit_fee_sharing_amount", false)) {
+            deposit_fee_sharing_amount();
+        }
 
         assertTrue(tokenScore.isWhitelisted(ownerWallet.getAddress()));
 
@@ -439,6 +450,42 @@ public class StableCoinIntTest extends TestBase {
 
         BigInteger balance_owner_after = txHandler.getBalance(ownerWallet.getAddress());
         assertEquals(balance_owner_before, balance_owner_after);
+
+
+    }
+
+    private void deposit_fee_sharing_amount() throws IOException, ResultTimeoutException {
+        BigInteger depositAmount = ICX.multiply(BigInteger.valueOf(5000));
+
+        Bytes loadIcx = txHandler.transfer(ownerWallet.getAddress(), depositAmount);
+        assertSuccess(txHandler.getResult(loadIcx));
+
+        // deposit 5000 ICX to Score
+        Bytes depositICX = txHandler.depositICX(ownerWallet, tokenScore.getAddress(), depositAmount, null);
+        assertSuccess(txHandler.getResult(depositICX));
+        status.put("deposit_fee_sharing_amount",true);
+    }
+
+    @Test
+    @Order(17)
+    public void change_free_tx_limit() throws IOException, ResultTimeoutException {
+        if (!status.getOrDefault("add_and_approve_owner", false)) {
+            add_and_approve(tokenScore, value);
+        }
+
+        if (!status.getOrDefault("mint", false)) {
+            mint();
+        }
+
+        if (!status.getOrDefault("deposit_fee_sharing_amount", false)) {
+            deposit_fee_sharing_amount();
+        }
+
+        Bytes freeTransactionLimit = tokenScore.changeFreeDailyTxLimit(ownerWallet,BigInteger.TWO);
+        TransactionResult txResult = txHandler.getResult(freeTransactionLimit);
+        assertSuccess(txResult);
+
+        tokenScore.TransactionLimitLog(txResult,ownerWallet.getAddress(),BigInteger.TWO);
     }
 
     private void add_and_approve(StableCoinScore tokenScore, BigInteger value) throws IOException, ResultTimeoutException {

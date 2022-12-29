@@ -232,6 +232,77 @@ public class StableCoinScore extends Score {
         throw new IOException("Failed to burn tokens.");
     }
 
+    public void addIssuerLog(TransactionResult result,Address caller,Address issuer)throws IOException{
+        TransactionResult.EventLog eventLog = findEventLog(result,getAddress(),
+                "AddIssuer(Address,Address)");
+        if (eventLog !=null){
+            Address _caller = eventLog.getIndexed().get(1).asAddress();
+            Address _issuer = eventLog.getIndexed().get(2).asAddress();
+
+            if (caller.equals(_caller) && issuer.equals(_issuer) ){
+                return;
+            }
+        }
+        throw new IOException("Failed to add issuer.");
+    }
+
+    public void removeIssuerLog(TransactionResult result,Address caller,Address issuer,BigInteger allowance)throws IOException{
+        TransactionResult.EventLog eventLog = findEventLog(result,getAddress(),
+                "RemoveIssuer(Address,Address,int)");
+        if (eventLog !=null){
+            Address _caller = eventLog.getIndexed().get(1).asAddress();
+            Address _issuer = eventLog.getIndexed().get(2).asAddress();
+            BigInteger _allowance = eventLog.getIndexed().get(3).asInteger();
+
+            if (caller.equals(_caller) && issuer.equals(_issuer) && allowance.equals(_allowance) ){
+                return;
+            }
+        }
+        throw new IOException("Failed to remove issuer.");
+    }
+
+    public void TransferAdminLog(TransactionResult result,Address caller, Address address)throws IOException{
+        TransactionResult.EventLog eventLog = findEventLog(result,getAddress(),
+                "TransferAdmin(Address,Address)");
+        if (eventLog !=null){
+            Address _caller = eventLog.getIndexed().get(1).asAddress();
+            Address _address = eventLog.getIndexed().get(2).asAddress();
+
+            if (caller.equals(_caller) && address.equals(_address) ){
+                return;
+            }
+        }
+        throw new IOException("Failed to transfer admin rights.");
+    }
+
+    public void TogglePauseLog(TransactionResult result,Address caller,boolean status)throws IOException{
+        TransactionResult.EventLog eventLog = findEventLog(result,getAddress(),
+                "TogglePause(Address,bool)");
+        if (eventLog !=null){
+            Address _caller = eventLog.getIndexed().get(1).asAddress();
+            boolean _status = eventLog.getIndexed().get(2).asBoolean();
+
+            if (caller.equals(_caller) && status == _status ){
+                return;
+            }
+        }
+        throw new IOException("Failed to toggle status.");
+    }
+
+    public void TransactionLimitLog(TransactionResult result,Address caller,BigInteger limit)throws IOException{
+        TransactionResult.EventLog eventLog = findEventLog(result,getAddress(),
+                "DailyTransactionLimit(Address,int)");
+        if (eventLog !=null){
+            Address _caller = eventLog.getIndexed().get(1).asAddress();
+            BigInteger _limit = eventLog.getIndexed().get(2).asInteger();
+
+            if (caller.equals(_caller) && limit.equals(_limit)){
+                return;
+            }
+        }
+        throw new IOException("Failed to change daily transaction limit.");
+    }
+
     public void depositForFeeSharing(){
 
     }
