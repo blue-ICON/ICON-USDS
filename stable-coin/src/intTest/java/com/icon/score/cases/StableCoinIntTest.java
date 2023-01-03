@@ -140,6 +140,16 @@ public class StableCoinIntTest extends TestBase {
 
     @Order(4)
     @Test
+    public void transfer_admin_right_zero_address_check()throws IOException, ResultTimeoutException{
+        LOG.infoEntering("transfer admin right to zero address");
+
+        Bytes adminRight = tokenScore.transferAdminRight(ownerWallet, ZERO_ADDRESS);
+        TransactionResult txResult = txHandler.getResult(adminRight);
+        assertFailure(txResult);
+    }
+
+    @Order(4)
+    @Test
     public void transfer_admin_right_check_access() throws IOException, ResultTimeoutException, TransactionFailureException {
 
         LOG.infoEntering("transfer admin right");

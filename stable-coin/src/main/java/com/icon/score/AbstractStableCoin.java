@@ -158,11 +158,11 @@ public abstract class AbstractStableCoin implements IRC2Base {
         require(_value.compareTo(BigInteger.ZERO) > 0, "Amount to mint should be greater than zero");
         require(isIssuer(issuer), "Only issuers can mint");
         require(!_paused.get(), "Cannot mint when paused");
+        require(_allowances.getOrDefault(issuer, BigInteger.ZERO).compareTo(_value) >= 0,
+                "Allowance amount to mint exceed");
 
         BigInteger value = _allowances.getOrDefault(issuer, BigInteger.ZERO).subtract(_value);
         _allowances.set(issuer, value);
-        require(_allowances.getOrDefault(issuer, BigInteger.ZERO).compareTo(BigInteger.ZERO) >= 0,
-                "Allowance amount to mint exceed");
 
         _whitelistWallet(_to, "whitelist on mint".getBytes());
 
@@ -183,8 +183,7 @@ public abstract class AbstractStableCoin implements IRC2Base {
     protected void _burn(Address _from, BigInteger _value) {
         require(!_from.equals(EOA_ZERO), "Cannot burn from zero address");
         require(_value.compareTo(BigInteger.ZERO) > 0, "Amount to burn should be greater than zero");
-        require(_balances.getOrDefault(_from, BigInteger.ZERO).compareTo(_value) >= 0,
-                "Insufficient balance to burn");
+        require(_balances.getOrDefault(_from, BigInteger.ZERO).compareTo(_value) >= 0, "Insufficient balance to burn");
         require(!_paused.get(), "Cannot burn when paused");
 
         totalSupply.set(totalSupply().subtract(_value));

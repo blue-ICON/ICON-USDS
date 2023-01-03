@@ -152,6 +152,11 @@ public class StableCoinUnitTest extends TestBase {
         String expectedErrorMessage = "Only admin can transfer their admin right";
         expectErrorMessage(changeAdminNotByAdmin, expectedErrorMessage);
 
+        // change Admin to zeroAddress
+        Executable zeroAddressAdmin = () -> tokenScore.invoke(owner, "transferAdminRight", EOA_ZERO);
+        expectedErrorMessage = "Cannot set zero address as admin";
+        expectErrorMessage(zeroAddressAdmin, expectedErrorMessage);
+
         //change admin and get admin
         tokenScore.invoke(owner, "transferAdminRight", Alice.getAddress());
         assertEquals(Alice.getAddress(), tokenScore.call("getAdmin"));

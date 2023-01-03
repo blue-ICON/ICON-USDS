@@ -32,6 +32,7 @@ public class StableCoin extends AbstractStableCoin {
             require(_symbol.length() > 0, "Invalid Token Symbol Name");
             require(_decimals.compareTo(BigInteger.ZERO) > 0, "Decimals cannot be less than 0");
             require(_nIssuers.compareTo(BigInteger.ZERO) > 0, "1 or more issuers required");
+            require(!_admin.equals(EOA_ZERO), "Cannot set zero address as admin");
 
             this.admin.set(_admin);
             this.nIssuers.set(_nIssuers);
@@ -184,8 +185,7 @@ public class StableCoin extends AbstractStableCoin {
     @External
     public void changeFreeDailyTxLimit(BigInteger _new_limit) {
 
-        require(_new_limit.compareTo(BigInteger.ZERO) >= 0,
-                "Free daily transaction limit cannot be under 0.");
+        require(_new_limit.compareTo(BigInteger.ZERO) >= 0, "Free daily transaction limit cannot be under 0.");
         onlyAdmin("Only admin can change free daily transaction limit");
 
         freeDailyTxLimit.set(_new_limit);
@@ -260,7 +260,7 @@ public class StableCoin extends AbstractStableCoin {
      */
     @External
     public void transferAdminRight(Address _newAdmin) {
-
+        require(!_newAdmin.equals(EOA_ZERO), "Cannot set zero address as admin");
         onlyAdmin("Only admin can transfer their admin right");
         admin.set(_newAdmin);
         TransferAdmin(Context.getCaller(), _newAdmin);
